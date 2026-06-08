@@ -1,0 +1,121 @@
+name: Deploy Hugo site and Build PDF Reports
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v2
+        with:
+          hugo-version: "0.134.3"
+          extended: true
+
+      - name: Build website
+        run: hugo --minify
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
+          publish_branch: gh-pages
+          force_orphan: true
+
+  build-pdf:
+    runs-on: ubuntu-latest
+    # needs: build-deploy
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install TeX Live and pandoc
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            texlive-latex-recommended \
+            texlive-latex-extra \
+            texlive-fonts-recommended \
+            texlive-lang-other \
+            latexmk \
+            pandoc
+
+      - name: Verify LaTeX packages
+        run: |
+          echo "=== Checking key packages ==="
+          for pkg in vntex mathptmx fancyhdr mdframed pdfpages float listings; do
+            if kpsewhich ${pkg}.sty > /dev/null 2>&1; then
+              echo "  $pkg: found"
+            else
+              echo "  $pkg: NOT FOUND"
+            fi
+          done
+
+      - name: Install Python dependencies
+        run: pip install pyyaml
+
+      - name: Convert Hugo content to LaTeX
+        run: python3 scripts/convert_hugo_to_latex.py
+
+      - name: Compile Vietnamese PDF
+        working-directory: report
+        run: |
+          latexmk -pdf -interaction=nonstopmode main.tex
+          latexmk -pdf -interaction=nonstopmode main.tex
+          latexmk -pdf -interaction=nonstopmode main.tex
+          cp main.pdf ../report_vn.pdf
+
+      - name: Compile English PDF
+        working-directory: report
+        run: |
+          latexmk -pdf -interaction=nonstopmode main_en.tex
+          latexmk -pdf -interaction=nonstopmode main_en.tex
+          latexmk -pdf -interaction=nonstopmode main_en.tex
+          cp main_en.pdf ../report_en.pdf
+      
+      - name: Package LaTeX source
+        run: |
+          zip -r latex_source.zip report scripts content config.toml \
+            -x "report/*.aux" \
+            -x "report/*.log" \
+            -x "report/*.out" \
+            -x "report/*.toc" \
+            -x "report/*.fls" \
+            -x "report/*.fdb_latexmk" \
+            -x "report/*.pdf"
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: latest
+          name: "Latest Internship Reports"
+          body: |
+            ## Internship Report PDFs
+
+            Automated PDF generation from Hugo content on push to `main`.
+
+            - **Vietnamese**: `report_vn.pdf`
+            - **English**: `report_en.pdf`
+            - **LaTeX source**: `latex_source.zip`
+          artifacts: "report_vn.pdf,report_en.pdf,latex_source.zip"
+          allowUpdates: true
+          removeArtifacts: true
+          makeLatest: true
+          token: ${{ secrets.GITHUB_TOKEN }}

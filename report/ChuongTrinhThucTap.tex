@@ -1,0 +1,17 @@
+\section{Chương trình thực tập}
+
+% \thispagestyle{empty}
+
+\IfFileExists{form/formD2.pdf}{
+  \includepdf[pages=-,pagecommand={\thispagestyle{empty}}]{form/formD2.pdf}
+}{
+    \pagebreak
+    \begin{center}
+        \textit{Đính kèm biểu mẫu D2 tại đây}
+    \end{center}
+    \pagebreak
+}
+
+\thispagestyle{fancy}
+
+\endinput

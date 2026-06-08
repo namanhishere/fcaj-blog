@@ -1,0 +1,19 @@
+\section{Internship Program}
+
+% \thispagestyle{empty}
+
+
+\IfFileExists{form/formD2.pdf}{
+  \includepdf[pages=-,pagecommand={\thispagestyle{empty}}]{form/formD2.pdf}
+}{
+    \pagebreak
+    \begin{center}
+        \textit{Attach form D2 here}
+    \end{center}
+    \pagebreak
+}
+
+\thispagestyle{fancy}
+\setcounter{page}{\thepage}
+
+\endinput
