@@ -1,0 +1,158 @@
+@startuml awsplace-architecture
+
+!include <awslib/AWSCommon>
+!include <awslib/Compute/all>
+!include <awslib/NetworkingContentDelivery/all>
+!include <awslib/Storage/all>
+!include <awslib/Database/all>
+!include <awslib/SecurityIdentityCompliance/all>
+!include <awslib/ManagementGovernance/all>
+!include <awslib/General/all>
+!include <awslib/Containers/all>
+
+!define ApiGateway(e_alias, e_label, e_techn) AWSEntity(e_alias, e_label, e_techn, #8C4FFF, CloudFront, CloudFront)
+
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 13
+
+skinparam rectangle {
+    BackgroundColor #FFFFFF
+    BorderColor #232F3E
+    FontColor #232F3E
+    BorderThickness 2
+}
+
+skinparam actor {
+    BackgroundColor #FF9900
+    BorderColor #232F3E
+    FontColor #FFFFFF
+    BorderThickness 2
+}
+
+skinparam arrow {
+    Color #545B64
+    Thickness 1.5
+}
+
+skinparam linetype ortho
+
+skinparam package {
+    BackgroundColor #F4F4F4
+    BorderColor #545B64
+    FontColor #232F3E
+    BorderThickness 1
+    FontSize 13
+    FontStyle bold
+}
+
+title \n<b><size:20>AWS Architecture — awsplace</size></b>\n<size:12>r/place clone · ap-southeast-1 · place.namanhishere.com</size>\n
+
+' ═══════════════════════════
+' EXTERNAL
+' ═══════════════════════════
+actor "User\nBrowser / App" as User
+
+rectangle "<img:../assent/discord.png>" <<SSO>> as discord
+rectangle "<img:../assent/gitlab.jpg>" <<CI/CD>> as CICD
+
+' ═══════════════════════════
+' AWS CLOUD
+' ═══════════════════════════
+package "AWS Cloud · ap-southeast-1" {
+
+    package "DNS & CDN" {
+        Route53(r53, "Route 53", "")
+        CertificateManager(acm_cdn, "ACM", "us-east-1  apex cert")
+        CloudFront(cf, "CloudFront", "")
+    }
+
+    package "Auth Layer" {
+        ApiGateway(apigw, "API Gateway", "HTTP API v2")
+        CertificateManager(acm_api, "ACM", "wildcard  *.place...")
+        Lambda(lambda_auth, "Lambda", "Node.js 20 · 512 MB\nAuth + Admin Proxy")
+    }
+
+    package "VPC · 2 AZs · Public Subnets" {
+        CertificateManager(acm_alb, "ACM", "wildcard  *.place...")
+
+        package "Availability Zone 1" {
+            ElasticLoadBalancing(alb, "ALB", "HTTPS · 3600s timeout\nws.place...")
+            ElasticContainerService(ecs, "ECS Fargate", "0.5 vCPU · 1 GB\nGo Server · :8980")
+        }
+
+        'package "Availability Zone 2" {
+            
+        '}
+    }
+
+    package "Data Layer" {
+        package "S3 Buckets" {
+            SimpleStorageService(s3_frontend, "S3", "Frontend  SPA")
+            SimpleStorageService(s3_canvas, "S3", "Canvas  Snapshots")
+            SimpleStorageService(s3_exports, "S3", "PNG  Exports")
+        }
+
+        package "DynamoDB Tables" {
+            DynamoDB(ddb_config, "DynamoDB", "Config")
+            DynamoDB(ddb_bans, "DynamoDB", "Bans")
+            DynamoDB(ddb_milestones, "DynamoDB", "Milestones")
+            DynamoDB(ddb_history, "DynamoDB", "History")
+        }
+
+        SecretsManager(secret, "Secrets Manager", "awsplace/app-secrets\nSESSION_SECRET · Discord")
+    }
+
+    CloudWatch(cw, "CloudWatch", "Logs & Metrics")
+}
+
+' ═══════════════════════════
+' CONNECTIONS & LAYOUT FLOW
+' ═══════════════════════════
+
+' Luồng DNS từ top xuống
+User -down-> r53
+r53 -down-> cf   : "<b>place.</b>"
+r53 -down-> apigw : "<b>api.</b>"
+r53 -down-> alb  : "<b>ws.</b>"
+
+' Luồng Web/App truy cập trực tiếp các service
+User -right-> cf : "HTTPS"
+User -right-> apigw : "HTTPS"
+User -right-> alb : "WSS  /ws"
+
+' CDN -> S3 Frontend
+cf -down-> s3_frontend : "OAC  S3 Origin"
+
+' Auth Gateway -> Lambda
+apigw -down-> lambda_auth : "Lambda integration"
+lambda_auth -right-> discord : "OAuth2   /login · /callback"
+
+' Điều hướng Admin Proxy từ Lambda sang ALB nằm ngang
+lambda_auth -right-> alb : "HTTP  /admin/* proxy"
+
+' ALB -> ECS hạ tầng bên dưới
+alb -down-> ecs : "HTTPS  :8980"
+
+' ECS -> Data stores (Đi xuống liền kề)
+ecs -down-> ddb_config
+ecs -down-> ddb_bans
+ecs -down-> ddb_milestones
+ecs -down-> ddb_history
+ecs -down-> s3_canvas : "save / load"
+ecs -down-> s3_exports : "PNG export"
+
+' Secrets Manager
+lambda_auth -down-> secret : "read"
+ecs -down-> secret : "read"
+
+' CloudWatch đẩy sang một bên gọn gàng
+lambda_auth .left.> cw
+ecs .left.> cw
+
+' CI/CD đẩy từ dưới lên hoặc từ cạnh vào để tránh cắt chéo
+CICD -up-> ecs : "deploy\n(ECR + force redeploy)"
+CICD -up-> lambda_auth : "deploy\n(update function code)"
+CICD -up-> s3_frontend : "deploy\n(sync dist/)"
+
+@enduml

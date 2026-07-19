@@ -1,0 +1,24 @@
+{{- $maxCharacters := 23 -}}
+{{- $title := .Title | plainify | htmlUnescape -}}
+{{- $words := split $title " " -}}
+{{- $lines := slice -}}
+{{- $line := "" -}}
+{{- range $words -}}
+  {{- $candidate := cond (eq $line "") . (printf "%s %s" $line .) -}}
+  {{- if and (gt (len $candidate) $maxCharacters) (ne $line "") -}}
+    {{- $lines = $lines | append $line -}}
+    {{- $line = . -}}
+  {{- else -}}
+    {{- $line = $candidate -}}
+  {{- end -}}
+{{- end -}}
+{{- if ne $line "" -}}
+  {{- $lines = $lines | append $line -}}
+{{- end -}}
+{{- $hasOverflow := gt (len $lines) 3 -}}
+{{- range $index, $text := first 3 $lines }}
+  {{- if and $hasOverflow (eq $index 2) -}}
+    {{- $text = printf "%s…" ($text | truncate 21 "") -}}
+  {{- end }}
+  <tspan x="72" y="{{ add 274 (mul $index 96) }}">{{ $text | htmlEscape }}</tspan>
+{{- end -}}

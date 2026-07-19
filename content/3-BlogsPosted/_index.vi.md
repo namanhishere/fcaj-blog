@@ -1,5 +1,6 @@
 ---
 title: "Các bài blogs đã đăng"
+linkPreviewLabel: "Bài viết"
 date: 2024-01-01
 weight: 3
 chapter: false

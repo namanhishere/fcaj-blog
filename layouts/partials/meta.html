@@ -1,0 +1,34 @@
+{{- $description := .Description | default .Summary | plainify | htmlUnescape | truncate 180 -}}
+{{- $previewImage := "link-preview.png" | absURL -}}
+{{- with .OutputFormats.Get "LINKPREVIEW" -}}
+  {{- $previewImage = replace .Permalink ".svg" ".png" -}}
+{{- end -}}
+{{- $pageType := cond .IsHome "website" "article" -}}
+<meta name="description" content="{{ $description }}">
+<meta name="author" content="{{ .Site.Params.author }}">
+<link rel="canonical" href="{{ .Permalink }}">
+
+<meta property="og:site_name" content="{{ .Site.Title }}">
+<meta property="og:type" content="{{ $pageType }}">
+<meta property="og:title" content="{{ .Title }}">
+<meta property="og:description" content="{{ $description }}">
+<meta property="og:url" content="{{ .Permalink }}">
+<meta property="og:locale" content="{{ cond (eq .Language.Lang "vi") "vi_VN" "en_US" }}">
+<meta property="og:image" content="{{ $previewImage }}">
+<meta property="og:image:secure_url" content="{{ $previewImage }}">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{{ .Title }} — {{ .Site.Params.domain }}">
+
+{{- if not .IsHome }}
+<meta property="article:author" content="{{ .Site.Params.author }}">
+<meta property="article:published_time" content="{{ .Date.Format "2006-01-02T15:04:05Z07:00" }}">
+<meta property="article:modified_time" content="{{ .Lastmod.Format "2006-01-02T15:04:05Z07:00" }}">
+{{- end }}
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ .Title }}">
+<meta name="twitter:description" content="{{ $description }}">
+<meta name="twitter:image" content="{{ $previewImage }}">
+<meta name="twitter:image:alt" content="{{ .Title }} — {{ .Site.Params.domain }}">

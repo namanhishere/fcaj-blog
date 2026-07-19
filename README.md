@@ -20,6 +20,25 @@ hugo --minify
 
 Requires **Hugo 0.134.3** (extended).
 
+### Link Previews and Diagrams
+
+The production build generates a 1200×630 Open Graph/Twitter preview for every
+English and Vietnamese page. Hugo writes the SVG source next to each page, then
+a small librsvg Docker image renders the final `link-preview.png` referenced by
+the page metadata.
+
+```bash
+# Build the page-local SVG previews, then render them to PNG.
+hugo --minify
+./scripts/render_link_previews.sh public
+
+# Compile graph/src/*.puml to PNG and SVG using Docker.
+./graph/compile.sh
+```
+
+PlantUML output is deployed at `/images/diagrams/`. Both diagram formats and all
+link preview PNGs are also attached to each GitHub Actions site build.
+
 ### PDF Reports (Local)
 
 ```bash
@@ -80,7 +99,10 @@ fcaj-blog/
 │   └── Images/hcmut.png     # University logo
 ├── scripts/
 │   ├── convert_hugo_to_latex.py  # Hugo → LaTeX converter
-│   └── hugo-notice.lua      # Pandoc filter for notice boxes
+│   ├── hugo-notice.lua      # Pandoc filter for notice boxes
+│   └── render_link_previews.sh   # Dockerized SVG → PNG renderer
+├── link-preview/            # librsvg preview renderer image
+├── graph/                   # PlantUML sources and Docker compiler
 ├── static/                  # Static assets (images, CSS, fonts)
 ├── layouts/                 # Custom Hugo layout overrides
 └── .github/workflows/hugo.yml  # CI: deploy + PDF build + release
@@ -113,7 +135,7 @@ On every push to `main`:
 
 | Job | What it does |
 |-----|-------------|
-| `build-deploy` | Builds Hugo site → deploys to `gh-pages` branch |
+| `build-deploy` | Builds PlantUML + link preview images, attaches them, then deploys Hugo to `gh-pages` |
 | `build-pdf` | Converts Hugo content → compiles VN + EN PDFs → creates/updates GitHub Release (`latest` tag) |
 
 Each release contains `report_vn.pdf` and `report_en.pdf`.

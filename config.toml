@@ -2,13 +2,24 @@ baseURL = "https://fcaj.namanhishere.com"
 relativeURLs = false
 canonifyURLs = false
 defaultContentLanguage = "en"
+enableGitInfo = true
 
 # Change the default theme to be use when building the site with Hugo
 theme = "hugo-theme-learn"
 
 # For search functionality
 [outputs]
-home = [ "HTML", "RSS", "JSON"]
+home = [ "HTML", "RSS", "JSON", "LINKPREVIEW" ]
+page = [ "HTML", "LINKPREVIEW" ]
+section = [ "HTML", "RSS", "LINKPREVIEW" ]
+taxonomy = [ "HTML", "RSS", "LINKPREVIEW" ]
+term = [ "HTML", "RSS", "LINKPREVIEW" ]
+
+[outputFormats.LINKPREVIEW]
+  mediaType = "image/svg+xml"
+  baseName = "link-preview"
+  isPlainText = true
+  notAlternative = true
 
 [params]
   # Change default color scheme with a variant one. Can be "red", "blue", "green".
@@ -16,7 +27,8 @@ home = [ "HTML", "RSS", "JSON"]
   # Git hub repo link
   editURL = ""
   description = ""
-  author = "namanh@namanhishere.com"
+  author = "namanhishere"
+  domain = "fcaj.namanhishere.com"
   showVisitedLinks = true
   disableBreadcrumb = false
   disableNextPrev = false

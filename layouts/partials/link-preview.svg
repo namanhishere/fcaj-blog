@@ -1,0 +1,63 @@
+{{- $languageCode := .Language.Lang -}}
+{{- $isVietnamese := eq $languageCode "vi" -}}
+{{- $languageName := cond $isVietnamese "Tiếng Việt" "English" -}}
+{{- $updatedLabel := cond $isVietnamese "Cập nhật" "Updated" -}}
+{{- $updatedDate := cond $isVietnamese (.Lastmod.Format "02/01/2006") (.Lastmod.Format "Jan 2, 2006") -}}
+{{- $domain := .Site.Params.domain | default "fcaj.namanhishere.com" -}}
+{{- $author := .Site.Params.author | default "namanhishere" -}}
+{{- $sectionLabel := cond $isVietnamese "Nội dung" "Article" -}}
+{{- with .FirstSection -}}
+  {{- $sectionLabel = .Params.linkPreviewLabel | default .LinkTitle -}}
+{{- end -}}
+{{- $translationNote := "" -}}
+{{- with .Translations -}}
+  {{- $translationNote = cond $isVietnamese "Có bản tiếng Anh" "Có bản tiếng Việt" -}}
+{{- end -}}
+{{- $languageIconPath := cond $isVietnamese "link-preview/vi.png" "link-preview/en.png" -}}
+{{- $languageIcon := readFile $languageIconPath | encoding.Base64Encode -}}
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title description">
+  <title id="title">{{ .Title | plainify | htmlEscape }}</title>
+  <desc id="description">{{ $domain }} link preview</desc>
+  <defs>
+    <radialGradient id="ambientGlow" cx="76%" cy="8%" r="72%">
+      <stop offset="0" stop-color="#ff8a00" stop-opacity="0.20"/>
+      <stop offset="0.30" stop-color="#ff7900" stop-opacity="0.075"/>
+      <stop offset="0.68" stop-color="#ff7900" stop-opacity="0.018"/>
+      <stop offset="1" stop-color="#ff7900" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cubeTop" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffc266"/>
+      <stop offset="1" stop-color="#ff9900"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="#050506"/>
+  <rect width="1200" height="630" fill="url(#ambientGlow)"/>
+
+  <g transform="translate(72 58)">
+    <path d="M15 0 30 8.5 15 17 0 8.5Z" fill="url(#cubeTop)"/>
+    <path d="M0 8.5 15 17v18L0 26.5Z" fill="#d95f00"/>
+    <path d="M30 8.5 15 17v18l15-8.5Z" fill="#ff8a00"/>
+  </g>
+  <text x="120" y="84" fill="#d4d4d8" font-family="Inter, DejaVu Sans, Arial, sans-serif" font-size="22" font-weight="500" letter-spacing="0.35">{{ $domain }}</text>
+
+  <text x="72" y="170" fill="#ff9900" font-family="Inter, DejaVu Sans, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2.8">{{ $sectionLabel | upper | plainify | htmlEscape }}</text>
+
+  <text fill="#f7f7f8" font-family="Inter, DejaVu Sans, Arial, sans-serif" font-size="82" font-weight="700" letter-spacing="-2.4">
+    {{ partial "link-preview-title.svg" . }}
+  </text>
+
+  <g font-family="Inter, DejaVu Sans, Arial, sans-serif" font-size="18" font-weight="500">
+    <text x="72" y="566" fill="#a1a1aa">{{ $author }}</text>
+    <circle cx="235" cy="560" r="3" fill="#52525b"/>
+    <text x="255" y="566" fill="#71717a">{{ $updatedLabel }}<tspan dx="12" fill="#a1a1aa">{{ $updatedDate }}</tspan></text>
+  </g>
+
+  <g transform="translate(944 526)" font-family="Inter, DejaVu Sans, Arial, sans-serif">
+    <image x="0" y="4" width="48" height="48" preserveAspectRatio="xMidYMid meet" xlink:href="data:image/png;base64,{{ $languageIcon }}"/>
+    <text x="64" y="27" fill="#a1a1aa" font-size="18" font-weight="600">{{ $languageName }}</text>
+    {{- with $translationNote }}
+    <text x="64" y="51" fill="#71717a" font-size="14" font-weight="500">{{ . }}</text>
+    {{- end }}
+  </g>
+</svg>

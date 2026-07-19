@@ -1,4 +1,4 @@
-name: Deploy Hugo site and Build PDF Reports
+name: Build site, images, and PDF reports
 
 on:
   push:
@@ -13,16 +13,40 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: true
 
       - name: Setup Hugo
-        uses: peaceiris/actions-hugo@v2
+        uses: peaceiris/actions-hugo@v3
         with:
           hugo-version: "0.134.3"
           extended: true
 
+      - name: Compile PlantUML diagrams
+        run: ./graph/compile.sh
+
       - name: Build website
         run: hugo --minify
+
+      - name: Add diagrams to the website
+        run: |
+          mkdir -p public/images/diagrams
+          cp graph/output/* public/images/diagrams/
+
+      - name: Render link preview images
+        run: ./scripts/render_link_previews.sh public
+
+      - name: Attach generated images to workflow run
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-images-${{ github.sha }}
+          path: |
+            public/**/link-preview.png
+            graph/output/
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
@@ -37,8 +61,9 @@ jobs:
     # needs: build-deploy
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
+          fetch-depth: 0
           submodules: true
 
       - name: Setup Python

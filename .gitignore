@@ -10,3 +10,9 @@ report/*.fdb_latexmk
 report_vn.pdf
 report_en.pdf
 report/form/*.pdf
+node_modules/
+
+
+# temp put the blog 0 as it needs to be fix
+3.0-Blog0/
+bitmask-demo/

@@ -1,0 +1,58 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "na": {
+      "npm": "@ai-sdk/anthropic",
+      "name": "Na LLM Lab",
+      "options": {
+        "baseURL": "https://llm.namanhishere.com/v1"
+      },
+      "models": {
+        "claude_sonet_4.5": {
+          "name": "Sonnet 4.5 Fake",
+          "limit": {
+            "context": 200000,
+            "output": 64000
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image",
+              "pdf"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "variants": {
+            "low": {
+              "thinking": {
+                "type": "adaptive"
+              },
+              "effort": "low"
+            },
+            "medium": {
+              "thinking": {
+                "type": "adaptive"
+              },
+              "effort": "medium"
+            },
+            "high": {
+              "thinking": {
+                "type": "adaptive"
+              },
+              "effort": "high"
+            },
+            "max": {
+              "thinking": {
+                "type": "adaptive"
+              },
+              "effort": "max"
+            }
+          }
+        }
+      }
+    },
+    
+  }
+}
