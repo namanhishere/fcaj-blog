@@ -11,6 +11,7 @@ report_vn.pdf
 report_en.pdf
 report/form/*.pdf
 node_modules/
+link-preview/github-avatar.jpg
 
 
 # temp put the blog 0 as it needs to be fix

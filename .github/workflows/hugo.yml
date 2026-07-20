@@ -27,6 +27,12 @@ jobs:
       - name: Compile PlantUML diagrams
         run: ./graph/compile.sh
 
+      - name: Download GitHub avatar
+        run: |
+          curl --fail --location --silent --show-error --retry 3 \
+            --output link-preview/github-avatar.jpg \
+            "https://avatars.githubusercontent.com/u/53372786"
+
       - name: Build website
         run: hugo --minify
 
