@@ -1,0 +1,111 @@
+@startuml gitlab-runner-ec2-autoscale
+
+title
+  <size:22><b>GitLab Runner — EC2 autoscaling from zero</b></size>
+  <size:12>One job per temporary worker · Docker Autoscaler + Fleeting AWS plugin</size>
+end title
+
+top to bottom direction
+
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 13
+skinparam shadowing false
+skinparam roundCorner 12
+skinparam linetype ortho
+skinparam nodesep 55
+skinparam ranksep 65
+
+skinparam package {
+  BackgroundColor #F6F7F9
+  BorderColor #5F6B7A
+  FontColor #172B4D
+  BorderThickness 1
+  FontStyle bold
+}
+
+skinparam component {
+  BackgroundColor #FFFFFF
+  BorderColor #44546F
+  FontColor #172B4D
+  BorderThickness 1.5
+}
+
+skinparam node {
+  BackgroundColor #FFFFFF
+  BorderColor #44546F
+  FontColor #172B4D
+  BorderThickness 1.5
+}
+
+skinparam artifact {
+  BackgroundColor #FFFFFF
+  BorderColor #44546F
+  FontColor #172B4D
+  BorderThickness 1.5
+}
+
+skinparam arrow {
+  Color #5F6B7A
+  FontColor #344563
+  Thickness 1.5
+}
+
+skinparam note {
+  BackgroundColor #FFF7D6
+  BorderColor #E2B203
+  FontColor #172B4D
+}
+
+package "1 · Build the worker image" #EEF5FF {
+  artifact "ci-image/\nDockerfile" as ci_image #FFFFFF
+  component "GitHub Actions\nBuild and publish" as gha #F3F0FF
+  component "GHCR\nCI image" as ghcr #F3F0FF
+  component "Packer\namazon-ebs" as packer #FFF4E5
+  artifact "Custom AL2023 AMI\nDocker + tools\nCI image cached" as ami #FFF4E5
+
+  ci_image -right-> gha : push
+  gha -right-> ghcr : publish
+  ghcr -right-> packer : pull
+  packer -right-> ami : bake
+}
+
+package "2 · Run a CI job" #F4F9F4 {
+  component "Self-managed GitLab\nJobs · logs · results" as gitlab #FCF0FF
+
+  node "Runner manager\nDocker Compose\nGitLab Runner + Fleeting AWS plugin" as manager #FCF0FF
+
+  component "EC2 Auto Scaling Group\n+ Launch Template\nmin 0 · desired 0 · max 10\nuses the custom AMI" as asg #FFF4E5
+
+  node "Ephemeral EC2 worker\nAmazon Linux 2023\nDocker job: capacity 1 · use count 1\nboot: refresh CI image from GHCR" as worker #FFF4E5
+
+  gitlab -right-> manager : HTTPS\njob
+  manager -right-> asg : AWS API\nscale 0 -> 1
+  asg -right-> worker : launch
+}
+
+artifact "Terraform\nASG · Launch Template\nIAM · SG · key pair" as terraform #E9F2FF
+
+terraform .up.> asg : provision
+ci_image -[hidden]down-> gitlab
+
+note bottom of asg
+  No jobs: desired capacity = 0
+  Job arrives: 0 -> 1
+  Job finishes: discard worker -> 0
+end note
+
+note bottom of worker
+  Runner manager connects over SSH.
+  Job logs and results return to GitLab.
+end note
+
+legend bottom
+  |= Runner setting |= Value |
+  | Jobs per EC2 instance | 1 |
+  | Uses before removal | 1 |
+  | Warm idle workers | 0 |
+  | Runner manager | Always online |
+endlegend
+
+@enduml

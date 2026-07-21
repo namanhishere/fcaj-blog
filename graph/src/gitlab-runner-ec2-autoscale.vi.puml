@@ -1,0 +1,111 @@
+@startuml gitlab-runner-ec2-autoscale-vi
+
+title
+  <size:22><b>GitLab Runner — Tự động mở rộng EC2 từ 0</b></size>
+  <size:12>Mỗi job trên một worker tạm thời · Docker Autoscaler + Fleeting AWS plugin</size>
+end title
+
+top to bottom direction
+
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 13
+skinparam shadowing false
+skinparam roundCorner 12
+skinparam linetype ortho
+skinparam nodesep 55
+skinparam ranksep 65
+
+skinparam package {
+  BackgroundColor #F6F7F9
+  BorderColor #5F6B7A
+  FontColor #172B4D
+  BorderThickness 1
+  FontStyle bold
+}
+
+skinparam component {
+  BackgroundColor #FFFFFF
+  BorderColor #44546F
+  FontColor #172B4D
+  BorderThickness 1.5
+}
+
+skinparam node {
+  BackgroundColor #FFFFFF
+  BorderColor #44546F
+  FontColor #172B4D
+  BorderThickness 1.5
+}
+
+skinparam artifact {
+  BackgroundColor #FFFFFF
+  BorderColor #44546F
+  FontColor #172B4D
+  BorderThickness 1.5
+}
+
+skinparam arrow {
+  Color #5F6B7A
+  FontColor #344563
+  Thickness 1.5
+}
+
+skinparam note {
+  BackgroundColor #FFF7D6
+  BorderColor #E2B203
+  FontColor #172B4D
+}
+
+package "1 · Chuẩn bị image cho worker" #EEF5FF {
+  artifact "ci-image/\nDockerfile" as ci_image #FFFFFF
+  component "GitHub Actions\nBuild và publish" as gha #F3F0FF
+  component "GHCR\nCI image" as ghcr #F3F0FF
+  component "Packer\namazon-ebs" as packer #FFF4E5
+  artifact "Custom AL2023 AMI\nDocker + công cụ\nCI image được cache" as ami #FFF4E5
+
+  ci_image -right-> gha : đẩy
+  gha -right-> ghcr : đăng
+  ghcr -right-> packer : tải
+  packer -right-> ami : tạo
+}
+
+package "2 · Chạy một CI job" #F4F9F4 {
+  component "GitLab self-managed\nJob · log · kết quả" as gitlab #FCF0FF
+
+  node "Runner Manager\nDocker Compose\nGitLab Runner + Fleeting AWS plugin" as manager #FCF0FF
+
+  component "EC2 Auto Scaling Group\n+ Launch Template\nmin 0 · desired 0 · max 10\nsử dụng custom AMI" as asg #FFF4E5
+
+  node "EC2 worker tạm thời\nAmazon Linux 2023\nDocker job: capacity 1 · dùng 1 lần\nkhi boot: cập nhật CI image từ GHCR" as worker #FFF4E5
+
+  gitlab -right-> manager : HTTPS\njob
+  manager -right-> asg : AWS API\nscale 0 -> 1
+  asg -right-> worker : khởi tạo
+}
+
+artifact "Terraform\nASG · Launch Template\nIAM · SG · key pair" as terraform #E9F2FF
+
+terraform .up.> asg : cấp phát
+ci_image -[hidden]down-> gitlab
+
+note bottom of asg
+  Không có job: desired capacity = 0
+  Có job mới: 0 -> 1
+  Job hoàn tất: hủy worker -> 0
+end note
+
+note bottom of worker
+  Runner Manager kết nối qua SSH.
+  Log và kết quả được trả về GitLab.
+end note
+
+legend bottom
+  |= Cấu hình Runner |= Giá trị |
+  | Job trên mỗi EC2 instance | 1 |
+  | Số lần dùng trước khi hủy | 1 |
+  | Worker chờ sẵn | 0 |
+  | Runner Manager | Luôn online |
+endlegend
+
+@enduml

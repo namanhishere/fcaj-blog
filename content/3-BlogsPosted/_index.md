@@ -12,13 +12,15 @@ includeInReport: false
 ⚠️ **Note:** The information below is for reference purposes only. Please **do not copy verbatim** for your own report, including this warning.
 {{% /notice %}}
 
-This section will list and introduce the blogs you have posted to [AWS Study Group](https://www.facebook.com/groups/awsstudygroupfcj). For example:
+This is where I write up the technical problems I run into while building and testing systems—including what I tried, why I chose it, and what I would still improve.
 
-###  [Blog 1 - SESSION POLICIES IN AMAZON EKS POD IDENTITY](3.1-Blog1/)
-This blog introduces the newly added session policies feature in Amazon EKS Pod Identity, which allows you to narrow IAM permissions flexibly and precisely for each pod without needing to create multiple separate IAM roles. This is an important step forward that helps apply the principle of least privilege more effectively in large-scale Kubernetes environments.
+### [Scaling GitLab Runner to zero with EC2 Auto Scaling](3.1-Blog1/)
 
-###  [Blog 2 - ...](3.2-Blog2/)
-This blog introduces the newly added session policies feature in Amazon EKS Pod Identity, which allows you to narrow IAM permissions flexibly and precisely for each pod without needing to create multiple separate IAM roles. This is an important step forward that helps apply the principle of least privilege more effectively in large-scale Kubernetes environments.
+This article explains how I combined GitLab Runner's Docker Autoscaler, the Fleeting AWS plugin, Terraform, Packer, and an EC2 Auto Scaling Group to create one temporary worker per job and scale the worker fleet back to zero when the queue is empty.
 
-###  [Blog 3 - ...](3.3-Blog3/)
-This blog introduces the newly added session policies feature in Amazon EKS Pod Identity, which allows you to narrow IAM permissions flexibly and precisely for each pod without needing to create multiple separate IAM roles. This is an important step forward that helps apply the principle of least privilege more effectively in large-scale Kubernetes environments.
+<figure>
+  <a href="/3-blogsposted/3.1-blog1/" aria-label="Read Scaling GitLab Runner to zero with EC2 Auto Scaling">
+    <img src="/images/diagrams/gitlab-runner-ec2-autoscale.svg" alt="GitLab Runner architecture using an EC2 Auto Scaling Group and ephemeral workers" loading="lazy">
+  </a>
+  <figcaption>Build the worker image once, launch isolated EC2 workers on demand, and return capacity to zero after the jobs finish.</figcaption>
+</figure>
