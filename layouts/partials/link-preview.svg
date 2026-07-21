@@ -11,7 +11,7 @@
 {{- end -}}
 {{- $translationNote := "" -}}
 {{- with .Translations -}}
-  {{- $translationNote = cond $isVietnamese "Có bản tiếng Anh" "Có bản tiếng Việt" -}}
+  {{- $translationNote = cond $isVietnamese "Available in English" "Có bản tiếng Việt" -}}
 {{- end -}}
 {{- $languageIconPath := cond $isVietnamese "link-preview/vi.png" "link-preview/en.png" -}}
 {{- $languageIcon := readFile $languageIconPath | encoding.Base64Encode -}}
@@ -25,7 +25,7 @@
       <stop offset="1" stop-color="#ff9900"/>
     </linearGradient>
     <clipPath id="avatarClip">
-      <rect x="72" y="544" width="24" height="24" rx="5"/>
+      <rect x="72" y="543" width="24" height="24" rx="5"/>
     </clipPath>
   </defs>
 
@@ -60,7 +60,8 @@
   </text>
 
   <g font-family="Inter, DejaVu Sans, Arial, sans-serif" font-size="18" font-weight="500">
-    <image x="72" y="544" width="24" height="24" preserveAspectRatio="xMidYMid slice" clip-path="url(#avatarClip)" xlink:href="data:image/jpeg;base64,{{ $githubAvatar }}"/>
+    <!-- Keep the 24px frame fixed; 4% overscan trims the photo's bottom-heavy edge. -->
+    <image x="71.52" y="543" width="24.96" height="24.96" preserveAspectRatio="xMidYMid slice" clip-path="url(#avatarClip)" xlink:href="data:image/jpeg;base64,{{ $githubAvatar }}"/>
     <text x="104" y="566" fill="#a1a1aa">{{ $author }}</text>
     <circle cx="235" cy="560" r="3" fill="#52525b"/>
     <text x="255" y="566" fill="#71717a">{{ $updatedLabel }}<tspan dx="12" fill="#a1a1aa">{{ $updatedDate }}</tspan></text>
