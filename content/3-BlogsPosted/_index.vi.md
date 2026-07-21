@@ -8,9 +8,6 @@ pre: " <b> 3. </b> "
 includeInReport: false
 ---
 
-{{% notice warning %}}  
-⚠️ **Lưu ý:** Các thông tin dưới đây chỉ nhằm mục đích tham khảo, vui lòng **không sao chép nguyên văn** cho bài báo cáo của bạn kể cả warning này.
-{{% /notice %}}
 
 Đây là nơi mình ghi lại những bài toán kỹ thuật đã gặp trong lúc tự dựng và thử nghiệm hệ thống — gồm cả cách làm, lý do chọn nó và những chỗ vẫn còn có thể cải thiện.
 

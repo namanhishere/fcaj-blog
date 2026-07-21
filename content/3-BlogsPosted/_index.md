@@ -8,10 +8,6 @@ pre: " <b> 3. </b> "
 includeInReport: false
 ---
 
-{{% notice warning %}}
-⚠️ **Note:** The information below is for reference purposes only. Please **do not copy verbatim** for your own report, including this warning.
-{{% /notice %}}
-
 This is where I write up the technical problems I run into while building and testing systems—including what I tried, why I chose it, and what I would still improve.
 
 ### [Scaling GitLab Runner to zero with EC2 Auto Scaling](3.1-Blog1/)
