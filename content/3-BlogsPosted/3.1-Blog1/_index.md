@@ -76,10 +76,7 @@ The most important part of the Runner configuration is quite short:
 
 `capacity_per_instance = 1` limits each EC2 instance to one job at a time, while `max_use_count = 1` schedules the instance for removal after its first use. I give up local caches and worker reuse in exchange for a cleaner, more predictable environment for every pipeline. In production, `aws:latest` should also be pinned to a specific plugin version.
 
-<figure>
-  <img src="/images/3-BlogsPosted/3.1-Blog1/runner.png" alt="An online GitLab Runner using the Docker Autoscaler executor and processing jobs" loading="lazy">
-  <figcaption>The Runner Manager remains online in GitLab even when the number of EC2 workers is zero.</figcaption>
-</figure>
+
 
 ## Capacity should have only one controller
 
@@ -221,6 +218,11 @@ When the system works correctly, `desired` follows the sequence `0 → 1 → 0`.
 <figure>
   <img src="/images/3-BlogsPosted/3.1-Blog1/ec2.png" alt="Ephemeral EC2 workers in running, shutting-down, and terminated states" loading="lazy">
   <figcaption>New workers and workers being reclaimed can overlap during a pipeline burst.</figcaption>
+</figure>
+
+<figure>
+  <img src="/images/3-BlogsPosted/3.1-Blog1/runner.png" alt="An online GitLab Runner using the Docker Autoscaler executor and processing jobs" loading="lazy">
+  <figcaption>The Runner Manager remains online in GitLab even when the number of EC2 workers is zero.</figcaption>
 </figure>
 
 # Conclusion
