@@ -105,6 +105,10 @@ if ! $SKIP_DIAGRAMS; then
   ./graph/compile.sh
   ok "Diagrams compiled to graph/output/"
   ok "Copied to static/images/diagrams/"
+  #copy to latex images folder
+  mkdir -p report/diagrams
+  cp graph/output/*.png report/diagrams/
+  ok "Copied diagrams to report/diagrams/"
 fi
 
 # ── link previews ────────────────────────────────────────────────

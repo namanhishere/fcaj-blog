@@ -1,0 +1,111 @@
+@startuml raftdb-efs-devloop-vi
+
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 13
+
+skinparam activity {
+    BackgroundColor #FFFFFF
+    BorderColor #232F3E
+    FontColor #232F3E
+    BorderThickness 2
+    DiamondBackgroundColor #FFFFFF
+    DiamondBorderColor #232F3E
+    DiamondFontColor #232F3E
+    StartColor #FF9900
+    EndColor #232F3E
+    BarColor #545B64
+}
+
+skinparam partition {
+    BackgroundColor #F4F4F4
+    BorderColor #545B64
+    FontColor #232F3E
+    FontStyle bold
+}
+
+skinparam note {
+    BackgroundColor #FFE8B3
+    BorderColor #545B64
+    FontColor #232F3E
+}
+
+skinparam arrow {
+    Color #545B64
+    Thickness 1.5
+}
+
+title \n<b><size:20>Vòng phát triển và triển khai RaftDB trên EFS</size></b>\n<size:12>WAL bền vững là thứ sống sót qua mỗi lần thay task | một writer, không bao giờ hai</size>\n
+
+start
+
+partition "1. Vòng phát triển cục bộ (docker compose)" {
+  :Sửa mã nguồn C++23, rồi chạy\n""docker compose up --build -d"";
+  :Service raftdb mount named volume\n""raftdb_data:/data/raftdb""\nRAFTDB_PORT=9100, RAFTDB_DATA_DIR=/data/raftdb;
+  :Thử nghiệm canvas cục bộ qua TCP 9100;
+  note right
+    Named volume ""raftdb_data"" sống lâu hơn
+    ""docker compose down"", nên WAL và danh mục
+    snapshot cục bộ vẫn còn sau khi build lại.
+    Đó đúng là hợp đồng bền dữ liệu mà EFS cung cấp
+    trên production - vòng dev không phải một thiết kế khác.
+  end note
+}
+
+partition "2. Công bố một image bất biến" {
+  :GitLab CI build, chạy contract test và quét image,\nrồi push tag bất biến raftdb-COMMIT_SHA lên ECR;
+  :Digest đã kiểm chứng được truyền cho ""cdk deploy"",\nnên container RaftDb được ghim theo digest;
+}
+
+if (Thư mục /data/raftdb nằm ở đâu?) then ([ĐANG TRIỂN KHAI] EFS access point\n/raftdb/production/member-1)
+
+  partition "3. Vòng triển khai giữ được canvas" {
+    :""ecs update-service --force-new-deployment"";
+    :minHealthyPercent: 0 / maxHealthyPercent: 100,\nnên ECS DỪNG task đang chạy TRƯỚC KHI khởi động\ntask thay thế;
+    note right
+      Chỉ một writer RaftDB sở hữu WAL trên EFS.
+      Hai task chồng lấn sẽ mở cùng các tập tin
+      bền vững một lúc, nên cửa sổ triển khai
+      cố ý là một khoảng trống, không phải chồng lấn.
+      Không có autoscaling theo số lượng task.
+    end note
+    :SIGTERM đến container RaftDb;
+    :stopTimeout: 120 s - tắt êm: ngừng nhận client,\ncông bố checkpoint cuối và đẩy WAL xuống đĩa;
+    :Task cũ thoát; EFS access point không còn writer nào;
+    :Task thay thế mount CHÍNH access point đó\n/raftdb/production/member-1 tại /data/raftdb\n(mã hoá đường truyền + uỷ quyền IAM, uid/gid 10001);
+
+    if (Snapshot đã chọn và phần đuôi WAL hợp lệ?) then (có)
+      :Kiểm tra rồi phục hồi snapshot cục bộ từ\n/data/raftdb/snapshots, sau đó phát lại phần đuôi WAL\ntừ /data/raftdb/wal - phục hồi, không phải nạp lại từ đầu;
+      :Công bố /tmp/raftdb-ready, rồi mở cổng client 9100;
+      :Container App chờ RaftDb HEALTHY, rồi nói chuyện với\n127.0.0.1:9100 với DATA_MODE=raftdb-only;
+      :Canvas, config, bans, milestones và lịch sử đặt điểm ảnh\ny nguyên như trước khi triển khai;
+    else (không)
+      :Khởi động THẤT BẠI thay vì nạp một cơ sở dữ liệu rỗng\n(dữ liệu thiếu, hỏng, không tương thích hoặc lệch);
+      :Lệnh health tiếp tục thất bại vì thiếu\n/tmp/raftdb-ready; circuit breaker của ECS\nquay ngược bản triển khai;
+      stop
+    endif
+  }
+
+else ([ĐÃ LOẠI BỎ] lưu trữ tạm thời của task)
+
+  partition "3b. Đối chiếu: một volume tạm thời sẽ gây ra điều gì" {
+    :Việc thay task xoá bỏ hệ thống tập tin của container;
+    :Task thay thế khởi động với /data/raftdb RỖNG -\nkhông phân đoạn WAL, không danh mục snapshot;
+    :Không có gì để phát lại và không có gì để phục hồi;
+    :Canvas mất sau MỌI lần triển khai,\nvà mỗi lần khởi động lại là một bảng trắng mới;
+    note right
+      Đây là lý do WAL nằm trên EFS chứ không nằm
+      trên lưu trữ riêng của task. Lựa chọn này không
+      phải vì dung lượng - nó là lý do duy nhất để một
+      lần triển khai là thay thế cuốn, không phải xoá dữ liệu.
+    end note
+    stop
+  }
+
+endif
+
+:Sau triển khai: các checkpoint định kỳ tiếp tục được đưa lên\nbucket snapshot S3 dưới tiền tố production/member-1\n(RAFTDB_SNAPSHOT_INTERVAL_SECONDS=300);
+
+stop
+
+@enduml

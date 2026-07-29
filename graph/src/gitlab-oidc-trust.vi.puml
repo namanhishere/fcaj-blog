@@ -1,0 +1,125 @@
+@startuml gitlab-oidc-trust-vi
+
+!include <awslib/AWSCommon>
+!include <awslib/Compute/all>
+!include <awslib/NetworkingContentDelivery/all>
+!include <awslib/Storage/all>
+!include <awslib/Database/all>
+!include <awslib/SecurityIdentityCompliance/all>
+!include <awslib/ManagementGovernance/all>
+!include <awslib/General/all>
+!include <awslib/Containers/all>
+!include <awslib/ApplicationIntegration/all>
+!include <awslib/FrontEndWebMobile/all>
+
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 13
+skinparam wrapWidth 400
+
+skinparam sequence {
+    ArrowColor #545B64
+    ArrowThickness 1.5
+    LifeLineBorderColor #545B64
+    LifeLineBackgroundColor #F4F4F4
+    ParticipantBackgroundColor #FFFFFF
+    ParticipantBorderColor #232F3E
+    ParticipantFontColor #232F3E
+    ParticipantBorderThickness 2
+    ActorBackgroundColor #FF9900
+    ActorBorderColor #232F3E
+    BoxBackgroundColor #F4F4F4
+    BoxBorderColor #545B64
+    BoxFontColor #232F3E
+    DividerBackgroundColor #232F3E
+    DividerBorderColor #232F3E
+    DividerFontColor #FFFFFF
+    GroupBackgroundColor #FFE8CC
+    GroupBorderColor #FF9900
+    GroupHeaderFontColor #232F3E
+}
+
+skinparam note {
+    BackgroundColor #FFF7D6
+    BorderColor #E2B203
+    FontColor #172B4D
+}
+
+title \n<b><size:20>Truy cập AWS không cần khóa tĩnh: GitLab CI đến AWS STS qua OIDC</size></b>\n<size:12>awsplace . GitLab tự quản tại git.namanhishere.com . ap-southeast-1 . nguồn: .gitlab-ci.yml</size>\n
+
+box "GitLab tự quản (git.namanhishere.com)" #EEF1F7
+    participant "GitLab CI\n(bên phát hành OIDC)" as GitLab
+    participant "job push-ecr\n.gitlab-ci.yml:345-373" as JobEcr
+    participant "job publish-raftdb-image\n.gitlab-ci.yml:377-486" as JobPub
+    participant "job deploy-to-aws\n.gitlab-ci.yml:501-675" as JobDeploy
+end box
+
+box "Tài khoản AWS ACCOUNT_ID (ap-southeast-1)" #EAF2FB
+    participant "IAM OIDC\nnhà cung cấp danh tính" as IAM <<$IdentityandAccessManagement>>
+    participant "AWS STS" as STS <<$IdentityAccessManagementAWSSTS>>
+    participant "Amazon ECR\nawsplace-ecs" as ECR <<$ElasticContainerRegistry>>
+end box
+
+note over GitLab, JobDeploy #FFF7D6
+  <b>Không có bất kỳ thông tin xác thực AWS dài hạn nào nằm trong GitLab.</b>
+  Không có <b>AWS_ACCESS_KEY_ID</b> và không có <b>AWS_SECRET_ACCESS_KEY</b>
+  trong biến CI/CD của project, group hay instance.
+  Giá trị duy nhất được lưu là tham chiếu role <b>${AWS_ROLE_ARN}</b>.
+end note
+
+autonumber "<b>[00]</b>"
+
+== Yêu cầu token (mỗi job, mỗi pipeline) ==
+
+JobEcr -> GitLab: khai báo\n<b>id_tokens:</b>\n  <b>AWS_JWT_TOKEN:</b>\n    <b>aud: https://git.namanhishere.com</b>\n(.gitlab-ci.yml:356-358)
+GitLab -> GitLab: phát hành một JWT OIDC vòng đời ngắn\niss = https://git.namanhishere.com\naud = https://git.namanhishere.com\nsub = các claim về project, ref và job
+GitLab --> JobEcr: chỉ tiêm <b>${AWS_JWT_TOKEN}</b> vào môi trường của job\n(không ghi vào repository, không lưu lại)
+
+== Đổi lấy thông tin xác thực ==
+
+JobEcr -> STS: <b>aws sts assume-role-with-web-identity</b>\n  --role-arn <b>${AWS_ROLE_ARN}</b>\n  --role-session-name <b>"GitLabCI-${CI_PIPELINE_ID}"</b>\n  --web-identity-token <b>${AWS_JWT_TOKEN}</b>\n  --duration-seconds <b>3600</b>\n(.gitlab-ci.yml:360-367)
+STS -> IAM: xác thực JWT được gửi đến
+IAM -> IAM: kiểm tra <b>issuer</b> = URL nhà cung cấp đã đăng ký\nkiểm tra <b>audience</b> (<b>aud</b>) = https://git.namanhishere.com\nkiểm tra <b>subject</b> (<b>sub</b>) theo điều kiện trong trust policy của role\nxác minh chữ ký bằng JWKS của nhà cung cấp
+IAM --> STS: kết luận tin cậy: chấp nhận
+STS --> JobEcr: <b>Credentials.[AccessKeyId, SecretAccessKey, SessionToken]</b>\ncó hiệu lực <b>3600 s</b>, sau đó hết hạn và không dùng được nữa
+JobEcr -> JobEcr: <b>export AWS_ACCESS_KEY_ID</b>\n<b>export AWS_SECRET_ACCESS_KEY</b>\n<b>export AWS_SESSION_TOKEN</b>\n(.gitlab-ci.yml:368-370)
+
+note right of JobEcr #FFF7D6
+  Vòng đời thông tin xác thực là <b>3600 s</b>. Nó chết cùng pipeline.
+  Không có gì phải luân chuyển, không có secret nào để rò rỉ.
+end note
+
+== Đăng nhập registry và sử dụng ==
+
+JobEcr -> ECR: <b>aws ecr get-login-password</b>\n  <b>--region ${AWS_REGION}</b>\n  | <b>docker login</b>\n  <b>--username AWS</b>\n  <b>--password-stdin ${ECR_REGISTRY}</b>\n(.gitlab-ci.yml:432-433)
+ECR --> JobEcr: phiên registry gắn với thông tin xác thực tạm thời
+JobEcr -> ECR: đẩy image của ứng dụng\n(scripts/push-ecs-image.sh, tag <b>$CI_COMMIT_SHA</b>)
+
+== Cùng một luồng, hai job tiêu thụ còn lại ==
+
+JobPub -> STS: cùng lệnh gọi, tên phiên khác\n<b>"GitLabCI-${CI_PIPELINE_ID}-RaftDB"</b>, 3600 s\n(.gitlab-ci.yml:414-420)
+note right of JobPub #FFF7D6
+  Job này <b>chỉ</b> xin token <b>sau khi</b> job <b>raftdb-image</b>
+  không có thông tin xác thực AWS đã build, kiểm thử và quét image,
+  và sau khi nó đã tự xác minh danh tính của artifact tại chỗ.
+end note
+STS --> JobPub: thông tin xác thực tạm thời, 3600 s
+JobPub -> ECR: <b>docker push</b> tag bất biến <b>raftdb-<sha></b>, rồi pull lại theo digest\n(.gitlab-ci.yml:449-467)
+
+JobDeploy -> STS: cùng lệnh gọi, phiên <b>"GitLabCI-${CI_PIPELINE_ID}"</b>, 3600 s\n(.gitlab-ci.yml:549-556)
+note right of JobDeploy #FFF7D6
+  Bước đối chiếu digest và <b>scripts/validate-deploy-env.sh</b> chạy
+  <b>trước</b> lệnh gọi này (.gitlab-ci.yml:532-547), nên một đầu vào sai
+  sẽ làm job thất bại trước khi AWS phát hành bất kỳ thông tin xác thực nào.
+end note
+STS --> JobDeploy: thông tin xác thực tạm thời, 3600 s
+
+legend right
+  <b>Sơ đồ này là bằng chứng cho điều gì</b>
+  Access key tĩnh không bao giờ bị hard-code, lưu trữ hay in ra.
+  Mọi hành động AWS trong CI đều chạy dưới một phiên STS 3600 s mà
+  AWS chỉ phát hành sau khi IAM đã xác minh JWT do GitLab ký.
+  Role ARN được viết là ${AWS_ROLE_ARN}; ID tài khoản đã được ẩn.
+endlegend
+
+@enduml

@@ -1,0 +1,125 @@
+@startuml gitlab-oidc-trust
+
+!include <awslib/AWSCommon>
+!include <awslib/Compute/all>
+!include <awslib/NetworkingContentDelivery/all>
+!include <awslib/Storage/all>
+!include <awslib/Database/all>
+!include <awslib/SecurityIdentityCompliance/all>
+!include <awslib/ManagementGovernance/all>
+!include <awslib/General/all>
+!include <awslib/Containers/all>
+!include <awslib/ApplicationIntegration/all>
+!include <awslib/FrontEndWebMobile/all>
+
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 13
+skinparam wrapWidth 400
+
+skinparam sequence {
+    ArrowColor #545B64
+    ArrowThickness 1.5
+    LifeLineBorderColor #545B64
+    LifeLineBackgroundColor #F4F4F4
+    ParticipantBackgroundColor #FFFFFF
+    ParticipantBorderColor #232F3E
+    ParticipantFontColor #232F3E
+    ParticipantBorderThickness 2
+    ActorBackgroundColor #FF9900
+    ActorBorderColor #232F3E
+    BoxBackgroundColor #F4F4F4
+    BoxBorderColor #545B64
+    BoxFontColor #232F3E
+    DividerBackgroundColor #232F3E
+    DividerBorderColor #232F3E
+    DividerFontColor #FFFFFF
+    GroupBackgroundColor #FFE8CC
+    GroupBorderColor #FF9900
+    GroupHeaderFontColor #232F3E
+}
+
+skinparam note {
+    BackgroundColor #FFF7D6
+    BorderColor #E2B203
+    FontColor #172B4D
+}
+
+title \n<b><size:20>Keyless AWS access: GitLab CI to AWS STS over OIDC</size></b>\n<size:12>awsplace . self-hosted GitLab at git.namanhishere.com . ap-southeast-1 . source: .gitlab-ci.yml</size>\n
+
+box "Self-hosted GitLab (git.namanhishere.com)" #EEF1F7
+    participant "GitLab CI\n(OIDC issuer)" as GitLab
+    participant "job push-ecr\n.gitlab-ci.yml:345-373" as JobEcr
+    participant "job publish-raftdb-image\n.gitlab-ci.yml:377-486" as JobPub
+    participant "job deploy-to-aws\n.gitlab-ci.yml:501-675" as JobDeploy
+end box
+
+box "AWS account ACCOUNT_ID (ap-southeast-1)" #EAF2FB
+    participant "IAM OIDC\nidentity provider" as IAM <<$IdentityandAccessManagement>>
+    participant "AWS STS" as STS <<$IdentityAccessManagementAWSSTS>>
+    participant "Amazon ECR\nawsplace-ecs" as ECR <<$ElasticContainerRegistry>>
+end box
+
+note over GitLab, JobDeploy #FFF7D6
+  <b>No long-lived AWS credential exists anywhere in GitLab.</b>
+  There is no <b>AWS_ACCESS_KEY_ID</b> and no <b>AWS_SECRET_ACCESS_KEY</b>
+  in the project, group, or instance CI/CD variables.
+  The only stored value is the role reference <b>${AWS_ROLE_ARN}</b>.
+end note
+
+autonumber "<b>[00]</b>"
+
+== Token request (per job, per pipeline) ==
+
+JobEcr -> GitLab: declare\n<b>id_tokens:</b>\n  <b>AWS_JWT_TOKEN:</b>\n    <b>aud: https://git.namanhishere.com</b>\n(.gitlab-ci.yml:356-358)
+GitLab -> GitLab: mint a short-lived OIDC JWT\niss = https://git.namanhishere.com\naud = https://git.namanhishere.com\nsub = project + ref + job claims
+GitLab --> JobEcr: inject <b>${AWS_JWT_TOKEN}</b> into the job environment only\n(never written to the repository, never persisted)
+
+== Credential exchange ==
+
+JobEcr -> STS: <b>aws sts assume-role-with-web-identity</b>\n  --role-arn <b>${AWS_ROLE_ARN}</b>\n  --role-session-name <b>"GitLabCI-${CI_PIPELINE_ID}"</b>\n  --web-identity-token <b>${AWS_JWT_TOKEN}</b>\n  --duration-seconds <b>3600</b>\n(.gitlab-ci.yml:360-367)
+STS -> IAM: validate the presented JWT
+IAM -> IAM: check <b>issuer</b> = the registered provider URL\ncheck <b>audience</b> (<b>aud</b>) = https://git.namanhishere.com\ncheck <b>subject</b> (<b>sub</b>) against the role trust policy condition\nverify the signature against the provider JWKS
+IAM --> STS: trust decision: accept
+STS --> JobEcr: <b>Credentials.[AccessKeyId, SecretAccessKey, SessionToken]</b>\nvalid for <b>3600 s</b>, then expired and unusable
+JobEcr -> JobEcr: <b>export AWS_ACCESS_KEY_ID</b>\n<b>export AWS_SECRET_ACCESS_KEY</b>\n<b>export AWS_SESSION_TOKEN</b>\n(.gitlab-ci.yml:368-370)
+
+note right of JobEcr #FFF7D6
+  Credential lifetime is <b>3600 s</b>. It dies with the pipeline.
+  Nothing to rotate, nothing to leak from a stored secret.
+end note
+
+== Registry login and use ==
+
+JobEcr -> ECR: <b>aws ecr get-login-password</b>\n  <b>--region ${AWS_REGION}</b>\n  | <b>docker login</b>\n  <b>--username AWS</b>\n  <b>--password-stdin ${ECR_REGISTRY}</b>\n(.gitlab-ci.yml:432-433)
+ECR --> JobEcr: registry session bound to the temporary credentials
+JobEcr -> ECR: push the application image\n(scripts/push-ecs-image.sh, tag <b>$CI_COMMIT_SHA</b>)
+
+== The same handshake, two more consumers ==
+
+JobPub -> STS: identical call, distinct session name\n<b>"GitLabCI-${CI_PIPELINE_ID}-RaftDB"</b>, 3600 s\n(.gitlab-ci.yml:414-420)
+note right of JobPub #FFF7D6
+  This job asks for a token <b>only after</b> the credential-free
+  <b>raftdb-image</b> job has built, tested and scanned the image,
+  and only after it has verified the artifact identity locally.
+end note
+STS --> JobPub: temporary credentials, 3600 s
+JobPub -> ECR: <b>docker push</b> immutable tag <b>raftdb-<sha></b>, then re-pull by digest\n(.gitlab-ci.yml:449-467)
+
+JobDeploy -> STS: identical call, session <b>"GitLabCI-${CI_PIPELINE_ID}"</b>, 3600 s\n(.gitlab-ci.yml:549-556)
+note right of JobDeploy #FFF7D6
+  The digest cross-check and <b>scripts/validate-deploy-env.sh</b> run
+  <b>before</b> this call (.gitlab-ci.yml:532-547), so a bad input fails
+  the job before any AWS credential is ever issued.
+end note
+STS --> JobDeploy: temporary credentials, 3600 s
+
+legend right
+  <b>What this diagram is evidence for</b>
+  Static access keys are never hard-coded, stored, or printed.
+  Every AWS action in CI runs under a 3600 s STS session that
+  AWS issued only after IAM verified the GitLab-signed JWT.
+  Role ARN is written as ${AWS_ROLE_ARN}; the account ID is redacted.
+endlegend
+
+@enduml

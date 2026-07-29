@@ -1,0 +1,118 @@
+@startuml cicd-pipeline
+
+!include <awslib/AWSCommon>
+!include <awslib/Compute/all>
+!include <awslib/NetworkingContentDelivery/all>
+!include <awslib/Storage/all>
+!include <awslib/Database/all>
+!include <awslib/SecurityIdentityCompliance/all>
+!include <awslib/ManagementGovernance/all>
+!include <awslib/General/all>
+!include <awslib/Containers/all>
+!include <awslib/ApplicationIntegration/all>
+!include <awslib/FrontEndWebMobile/all>
+
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 13
+skinparam wrapWidth 600
+
+skinparam rectangle {
+    BackgroundColor #FFFFFF
+    BorderColor #232F3E
+    FontColor #232F3E
+    BorderThickness 2
+}
+
+skinparam arrow {
+    Color #545B64
+    Thickness 1.5
+}
+
+skinparam package {
+    BackgroundColor #F4F4F4
+    BorderColor #545B64
+    FontColor #232F3E
+    BorderThickness 1
+    FontSize 14
+    FontStyle bold
+}
+
+skinparam note {
+    BackgroundColor #FFF7D6
+    BorderColor #E2B203
+    FontColor #172B4D
+}
+
+title \n<b><size:20>awsplace GitLab CI: four stages, and the RaftDB image chain of custody</size></b>\n<size:12>self-hosted GitLab at git.namanhishere.com . every line reference is .gitlab-ci.yml . grey = ordinary stage flow, orange = custody chain</size>\n
+
+package "stage 1 . build-ci-image" as P1 {
+  rectangle "<b>build-ci-image</b>\ndocker:latest + docker:dind\ndocker build -f <b>Dockerfile.ci-utils</b>\npush <b>ci-utils:$CI_COMMIT_SHA</b> and <b>ci-utils:main</b>\nruns only on main, and only when\nDockerfile.ci-utils or .gitlab-ci.yml changed\n<size:11>:10-29</size>" as CIIMG
+}
+
+package "stage 2 . test" as P2 {
+  rectangle "<b>test-lambda</b>\nnode:24 . npm ci\nnpx vitest run\nnode tests/nibble-parity.js\n<size:11>:42-51</size>" as TL
+  rectangle "<b>test-go-unit</b>\ngolang:1.25 . CGO_ENABLED=0\ngo test ./internal/canvas/...\n./internal/auth/... ./internal/ws/...\n<size:11>:53-62</size>" as TGU
+  rectangle "<b>test-go-postgres</b>\nservice postgres:16\nBACKEND=postgres STORAGE=fs\nTestPostgresBackend, TestFilesystemStore\n<size:11>:64-81</size>" as TGP
+  rectangle "<b>test-go-ministack</b>\nservice nahuelnucera/ministack :4566\nBACKEND=dynamodb STORAGE=s3\nddb, admin, scheduler + integration tests\n<size:11>:83-130</size>" as TGM
+  rectangle "<b>test-cdk</b>\nnode:24 . scripts/build-frontend.sh\nnpm run build . cdk synth --no-strict\njest raftdb-workflow, deploy-config,\ndeployment-contract\n<size:11>:132-140</size>" as TC
+  rectangle "<b>test-raftdb-fuzz</b>\nubuntu:24.04 . clang-19 + libFuzzer\ncmake --preset fuzz\nfuzz_tcp_frame -max_total_time=300\n<size:11>:284-314</size>" as TF
+  rectangle "<b>test-raftdb-sanitizers</b>\n<i>commented out (asan / ubsan / tsan)</i>\nGitHub Actions raftdb-ci.yml is\nauthoritative for the C++ toolchain;\nthis GitLab job was a parity mirror only\n<size:11>:249-282</size>" as TS #EDEDED;line:9E9E9E;line.dashed
+}
+
+package "stage 3 . build" as P3 {
+  rectangle "<b>build-images</b>\ndocker:27-cli + dind\nbuilds awsplace-ecs and awsplace-lambda\npushes to the GitLab container registry\n<size:11>:319-343</size>" as BI
+  rectangle "<b>push-ecr</b>\nci-utils:main image\n<b>id_tokens: AWS_JWT_TOKEN</b>\naud: https://git.namanhishere.com\nOIDC to STS, 3600 s, then\nscripts/push-ecs-image.sh tag $CI_COMMIT_SHA\n<size:11>:345-373</size>" as PE
+  rectangle "<b>create-release</b>\nrelease-cli, tag pipelines only\n<size:11>:488-496</size>" as CR
+}
+
+package "stage 4 . deploy" as P4 {
+  rectangle "<b>deploy-to-aws</b>\nneeds: test-lambda, test-go-unit,\ntest-go-postgres, test-go-ministack,\ntest-cdk, push-ecr, publish-raftdb-image\n<size:11>:501-528</size>" as DEP
+  rectangle "cdk synth . prepare-cloudformation-deploy.sh\n<b>cdk deploy --import-existing-resources</b>\n<size:11>:562-572</size>" as DCFN <<$CloudFormation>>
+  rectangle "amplify create-deployment . curl -T zip\nstart-deployment . poll get-job to SUCCEED\n<size:11>:575-635</size>" as DAMP <<$Amplify>>
+  rectangle "ecs update-service --force-new-deployment\necs wait services-stable\ncheck-websocket-origin.mjs\n<size:11>:638-675</size>" as DECS <<$ElasticContainerService>>
+}
+
+package "  CHAIN OF CUSTODY . the tested bytes are the deployed bytes  " as CUSTODY #FFF3E0 {
+
+  rectangle "<b><size:15>raftdb-image</size></b>  <size:11>[stage: test]</size>\n<b><color:#B34700>runs with NO AWS credentials at all</color></b>\n----\n<b>1</b> docker build --file raftdb/Dockerfile\n    --tag <b>raftdb:$CI_COMMIT_SHA</b>  <size:11>:184</size>\n<b>2</b> four shell contract tests against that tag:\n    container_contract_test.sh\n    qualification_runtime_contract_test.sh\n    migration_runtime_contract_test.sh\n    s3_runtime_contract_test.sh  <size:11>:185-199</size>\n<b>3</b> install <b>Trivy 0.72.0</b>: the checksums file is\n    verified against a pinned sha256, then the\n    archive is verified against that file  <size:11>:161-177</size>\n<b>4</b> trivy image --severity <b>HIGH,CRITICAL</b>\n    --format json\n    --exit-code 0  <size:11>:202-208</size>\n<b>5</b> assert the <b>docker image ID is unchanged</b>\n    across the scan, else fail  <size:11>:201, 209-213</size>\n<b>6</b> any <b>CRITICAL</b> fails the job; any <b>HIGH</b> fails it\n    unless <b>RAFTDB_ACCEPT_HIGH_CVES == $CI_COMMIT_SHA</b>  <size:11>:215-228</size>\n<b>7</b> <b>docker save | gzip -9</b> plus\n    <b>raftdb-image-evidence.json</b>\n    {commit, imageId, localTag, scan}  <size:11>:230-247</size>" as RAFT #FFFFFF;line:FF9900;line.bold
+
+  rectangle "<b><size:15>publish-raftdb-image</size></b>  <size:11>[stage: build]</size>\n<b><color:#B34700>receives an OIDC token only now, at step 4</color></b>\n----\n<b>1</b> evidence <b>.commit</b> must equal <b>$CI_COMMIT_SHA</b>  <size:11>:401-406</size>\n<b>2</b> gzip -dc raftdb-image.tar.gz | <b>docker load</b>  <size:11>:407</size>\n<b>3</b> loaded <b>image ID</b> must equal evidence <b>.imageId</b>  <size:11>:408-412</size>\n<b>4</b> <b>assume-role-with-web-identity</b>, session\n    GitLabCI-${CI_PIPELINE_ID}-RaftDB, 3600 s  <size:11>:414-423</size>\n<b>5</b> resolve the repo via ensure-ecr-repository.sh and\n    assert it is exactly <b>awsplace-ecs</b>  <size:11>:425-431</size>\n<b>6</b> push the <b>immutable</b> tag <b>raftdb-<sha></b>; if the tag\n    exists it must already hold this image ID  <size:11>:435-451</size>\n<b>7</b> digest must match <b>^sha256:[0-9a-f]{64}$</b>  <size:11>:453-461</size>\n<b>8</b> <b>docker image rm</b> every local copy  <size:11>:463-466</size>\n<b>9</b> <b>docker pull by digest</b> and re-run the container and\n    migration contract tests on the pulled bytes  <size:11>:467-469</size>\n<b>10</b> write <b>raftdb-publish.env</b> and\n    raftdb-publish-evidence.json  <size:11>:471-479</size>" as PUB #FFFFFF;line:FF9900;line.bold
+
+  rectangle "<b><size:15>deploy-to-aws before_script</size></b>  <size:11>[stage: deploy]</size>\n<b><color:#B34700>the cross-check runs BEFORE authenticating</color></b>\n----\n<b>1</b> <b>PUBLISHED_RAFTDB_IMAGE_DIGEST</b> must be present\n    (it arrives from the dotenv report)  <size:11>:533-536</size>\n<b>2</b> read <b>.digest</b> from raftdb-publish-evidence.json  <size:11>:537-541</size>\n<b>3</b> <b>dotenv digest must equal evidence digest</b>, else fail  <size:11>:542-545</size>\n<b>4</b> export <b>RAFTDB_IMAGE_DIGEST</b>  <size:11>:546</size>\n<b>5</b> scripts/validate-deploy-env.sh: nine required\n    variables, rejects an unresolved ${VAR}, and\n    re-checks the digest and HOSTED_ZONE_ID shapes  <size:11>:547</size>\n<b>6</b> only then <b>assume-role-with-web-identity</b>, 3600 s  <size:11>:549-559</size>" as DGATE #FFFFFF;line:FF9900;line.bold
+
+  rectangle "Amazon ECR <b>awsplace-ecs</b>\nimmutable tag <b>raftdb-<sha></b>\nthe ECS task definition pins the\n<b>digest</b>, never a mutable tag" as ECRN <<$ElasticContainerRegistry>>
+}
+
+CIIMG -[#545B64]-> TL : ci-utils:main\nis the image the\nOIDC jobs run in
+
+TC -[#545B64]-> BI : stage gate:\nevery test job green
+BI -[#545B64]-> PE
+PE -[#545B64]-> DEP : stage gate
+DEP -[#545B64]-> DCFN
+DCFN -[#545B64]-> DAMP
+DAMP -[#545B64]-> DECS
+
+RAFT -[#FF9900,thickness=3]-> PUB : <b>artifacts:</b> raftdb-image.tar.gz +\nraftdb-image-evidence.json, consumed via\n<b>needs: job: raftdb-image, artifacts: true</b>\nso promotion never rebuilds the image\n<size:11>:241-247, 389-391</size>
+PUB -[#FF9900,thickness=3]-> ECRN : docker push, then re-pull\nand retest <b>by digest</b>
+PUB -[#FF9900,thickness=3]-> DGATE : <b>reports: dotenv: raftdb-publish.env</b>\ncarries PUBLISHED_RAFTDB_IMAGE_DIGEST\ninto the deploy job's environment\n<size:11>:480-486</size>
+DGATE -[#FF9900,thickness=3]-> DEP : RAFTDB_IMAGE_DIGEST\nfeeds the CDK deploy
+
+note bottom of TS #EDEDED
+  Kept as a comment, not deleted: <b>.gitlab-ci.yml:249-250</b> records that
+  <b>.github/workflows/raftdb-ci.yml</b> is authoritative for the RaftDB C++
+  toolchain, so the sanitizer presets are not re-run here. The C++ job that
+  <i>is</i> still active in GitLab is the libFuzzer run, test-raftdb-fuzz.
+end note
+
+legend right
+  <b>Why the custody lane exists</b>
+  raftdb-image can build, run and scan the image without ever
+  holding an AWS credential, so a compromised build step has
+  nothing to push with. publish-raftdb-image proves, byte for
+  byte, that the artifact it received is the artifact that was
+  tested, and only then asks STS for a 3600 s session.
+  deploy-to-aws re-proves the digest before it authenticates.
+endlegend
+
+@enduml
