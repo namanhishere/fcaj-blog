@@ -60,21 +60,30 @@
 }
 \thesislayout
 
+\usepackage{xcolor}
+
+\definecolor{codegreen}{rgb}{0.0,0.5,0.0}
+\definecolor{codeblue}{rgb}{0.0,0.2,0.7}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+
 \lstset{
-basicstyle=\footnotesize\ttfamily,
-breaklines=true,
-breakatwhitespace=false,
-frame=single,
-numbers=left,
-numberstyle=\tiny,
-stepnumber=1,
-numbersep=5pt,
-tabsize=2,
-showspaces=false,
-showstringspaces=false,
-backgroundcolor=\color{white},
-captionpos=b,
+    basicstyle=\footnotesize\ttfamily,
+    breaklines=true,
+    breakatwhitespace=false,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{codegray},
+    stepnumber=1,
+    numbersep=5pt,
+    keywordstyle=\color{codeblue}\bfseries,
+    commentstyle=\color{codegreen}\itshape,
+    stringstyle=\color{codepurple},
+    showspaces=false,
+    showstringspaces=false,
+    captionpos=b,
 }
+
 
 \setlength{\headheight}{40pt}
 \pagestyle{fancy}

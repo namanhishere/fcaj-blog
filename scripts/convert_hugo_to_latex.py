@@ -671,7 +671,7 @@ def postprocess_latex(latex):
     # Do NOT replace Pandoc table column specs by regex.
     latex = re.sub(r"\\label\{[^}]+\}", "", latex)
     latex = neutralize_body_headings(latex)
-    latex = compact_longtables(latex)
+    # latex = compact_longtables(latex)
     return latex
 
 
