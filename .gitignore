@@ -19,9 +19,15 @@ link-preview/github-avatar.jpg
 bitmask-demo/
 
 
-1-Worklog/
+# 1-Worklog/
 2-Proposal/
 4-EventParticipated/
 5-Workshop/
 6-Self-evaluation/
 7-Feedback/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
