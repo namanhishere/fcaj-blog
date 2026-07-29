@@ -1,5 +1,5 @@
 ---
-title: "Amazon EFS đã rút ngắn vòng lặp phát triển của tôi khi xây dựng một Raft datastore như thế nào"
+title: "Amazon EFS đã rút ngắn vòng lặp phát triển của mình khi xây dựng một Raft datastore như thế nào"
 date: 2026-07-27
 weight: 3
 chapter: false
@@ -9,15 +9,15 @@ includeInReport: false
 
 ## Bối cảnh
 
-Datastore production của dự án thực tập của tôi không phải là một dịch vụ được quản lý. Đó là một server C++23 tên RaftDB, chạy như một container sidecar trong cùng một ECS Fargate task với ứng dụng Go. Ứng dụng nói chuyện với nó qua `127.0.0.1:9100` với `DATA_MODE=raftdb-only`, nên mọi pixel trên canvas cộng tác, cùng với config, bans, milestones và lịch sử đặt pixel, đều nằm trong đúng một process đó (`awsplace/cdk/lib/ecs.ts:130-140`).
+Datastore production của dự án thực tập của mình không phải là một dịch vụ được quản lý. Đó là một server C++23 tên RaftDB, chạy như một container sidecar trong cùng một ECS Fargate task với ứng dụng Go. Ứng dụng nói chuyện với nó qua `127.0.0.1:9100` với `DATA_MODE=raftdb-only`, nên mọi pixel trên canvas cộng tác, cùng với config, bans, milestones và lịch sử đặt pixel, đều nằm trong đúng một process đó (`awsplace/cdk/lib/ecs.ts:130-140`).
 
 RaftDB giữ trạng thái của nó trên đĩa. Runtime contract của nó nói rõ về layout: thư mục dữ liệu ghi được là `/data/raftdb`, write-ahead log nằm ở `/data/raftdb/wal`, checkpoint cục bộ nằm ở `/data/raftdb/snapshots`, và process chỉ công bố readiness marker tạm thời tại `/tmp/raftdb-ready` sau khi quá trình recovery hoàn tất (`awsplace/docs/raftdb/runtime-contract.md:34-41`).
 
-Fargate không giữ container. Mỗi lần `cdk deploy`, mỗi image digest mới, mỗi `force-new-deployment` đều thay task bằng một task hoàn toàn mới. Vậy là tôi có một process mà toàn bộ giá trị của nó là những byte nó đã ghi xuống đĩa, chạy trên một nền tảng ném cái đĩa đó đi.
+Fargate không giữ container. Mỗi lần `cdk deploy`, mỗi image digest mới, mỗi `force-new-deployment` đều thay task bằng một task hoàn toàn mới. Vậy là mình có một process mà toàn bộ giá trị của nó là những byte nó đã ghi xuống đĩa, chạy trên một nền tảng ném cái đĩa đó đi.
 
-## Một WAL rỗng đã khiến tôi mất những gì
+## Một WAL rỗng đã khiến mình mất những gì
 
-Ở local thì việc này chưa bao giờ là vấn đề, vì Docker Compose đã cho tôi một đĩa bền vững. Service `raftdb` mount một named volume, và named volume sống sót qua `docker compose down`:
+Ở local thì việc này chưa bao giờ là vấn đề, vì Docker Compose đã cho mình một đĩa bền vững. Service `raftdb` mount một named volume, và named volume sống sót qua `docker compose down`:
 
 ```yaml
 services:
@@ -39,19 +39,19 @@ volumes:
   raftdb_data:
 ```
 
-Đoạn trên được rút gọn từ `awsplace/docker-compose.yml:7-19` và `:138-140`. Build lại image, khởi động lại container, và các WAL segment cùng snapshot catalog dưới `/data/raftdb` vẫn còn đó. Canvas local của tôi giữ nguyên pixel qua một lần build lại mà tôi không phải làm gì cả.
+Đoạn trên được rút gọn từ `awsplace/docker-compose.yml:7-19` và `:138-140`. Build lại image, khởi động lại container, và các WAL segment cùng snapshot catalog dưới `/data/raftdb` vẫn còn đó. Canvas local của mình giữ nguyên pixel qua một lần build lại mà mình không phải làm gì cả.
 
-Trên Fargate, trước khi tôi gắn storage bền vững, điều ngược lại đã xảy ra. Task thay thế khởi động với `/data/raftdb` rỗng. Không có phần cuối WAL nào để replay và không có snapshot nào để restore, nên mỗi lần deploy tôi lại nhận về một bảng trắng. Muốn kiểm thử bất cứ thứ gì phụ thuộc vào trạng thái có sẵn thì phải gieo lại canvas bằng tay trước, mà tôi thì deploy nhiều lần mỗi giờ. Phần thú vị nhất của công việc, tức là xem server phục hồi ra sao, lại đúng là phần tôi không thể quan sát, vì chẳng bao giờ có gì để phục hồi.
+Trên Fargate, trước khi mình gắn storage bền vững, điều ngược lại đã xảy ra. Task thay thế khởi động với `/data/raftdb` rỗng. Không có phần cuối WAL nào để replay và không có snapshot nào để restore, nên mỗi lần deploy mình lại nhận về một bảng trắng. Muốn kiểm thử bất cứ thứ gì phụ thuộc vào trạng thái có sẵn thì phải gieo lại canvas bằng tay trước, mà mình thì deploy nhiều lần mỗi giờ. Phần thú vị nhất của công việc, tức là xem server phục hồi ra sao, lại đúng là phần mình không thể quan sát, vì chẳng bao giờ có gì để phục hồi.
 
 ## Vì sao chọn EFS chứ không phải các lựa chọn khác
 
-Tôi đã xem xét ba lựa chọn khác trước khi mount Amazon EFS, và mỗi lựa chọn thất bại vì một lý do cụ thể.
+Mình đã xem xét ba lựa chọn khác trước khi mount Amazon EFS, và mỗi lựa chọn thất bại vì một lý do cụ thể.
 
-Một **EBS volume** chỉ gắn được vào một compute instance tại một thời điểm. Với một lần thay thế Fargate task, task mới là một task khác với lifecycle riêng của nó, và tôi sẽ phải tháo volume khỏi task đang chết rồi gắn lại vào task mới đúng vào thời điểm chính xác. Việc chuyển giao đó không phải thứ mà ECS deployment cho tôi sẵn, và làm sai thì task thay thế không mount được chút nào.
+Một **EBS volume** chỉ gắn được vào một compute instance tại một thời điểm. Với một lần thay thế Fargate task, task mới là một task khác với lifecycle riêng của nó, và mình sẽ phải tháo volume khỏi task đang chết rồi gắn lại vào task mới đúng vào thời điểm chính xác. Việc chuyển giao đó không phải thứ mà ECS deployment cho mình sẵn, và làm sai thì task thay thế không mount được chút nào.
 
 **Amazon S3** không phải một filesystem. RaftDB ghi thêm vào write-ahead log tại chỗ, và nó replay phần cuối WAL khi khởi động (`runtime-contract.md:114-116`). Object trên S3 là bất biến: ghi thêm nghĩa là viết lại cả object. S3 vẫn nằm trong thiết kế, nhưng với vai trò đích đến của các checkpoint hoàn chỉnh, không phải thiết bị chứa WAL.
 
-Một **ephemeral volume ở phạm vi task** thì theo định nghĩa bị hủy cùng với task. Đó chính xác là thất bại tôi đã gặp.
+Một **ephemeral volume ở phạm vi task** thì theo định nghĩa bị hủy cùng với task. Đó chính xác là thất bại mình đã gặp.
 
 Amazon EFS là lựa chọn duy nhất vừa là một POSIX filesystem, vừa có thể được mount bởi task nào đang tồn tại ngay lúc này, và sống lâu hơn tất cả chúng. Phần CDK cho nó rất ngắn:
 
@@ -118,7 +118,7 @@ Cũng chính construct này mở đường cho một cluster nhiều voter trong
 
 # Giá phải trả: deploy theo kiểu dừng rồi mới chạy
 
-Đây là phần tôi đã không lường trước. Storage bền vững làm thay đổi chiến lược deploy, và thay đổi theo hướng không dễ chịu.
+Đây là phần mình đã không lường trước. Storage bền vững làm thay đổi chiến lược deploy, và thay đổi theo hướng không dễ chịu.
 
 RaftDB có đúng một writer, và Raft leader fencing thì chưa tồn tại (`runtime-contract.md:78-80`). Nếu ECS làm một rolling deployment bình thường, task mới sẽ mount `/raftdb/production/member-1` khi task cũ còn đang mở WAL. Hai process cùng ghi thêm vào một tập log là hỏng dữ liệu, không phải một tình huống tranh chấp có thể thử lại. Vì vậy service được cấu hình để việc chồng lấp là không thể xảy ra:
 
@@ -137,7 +137,7 @@ const service = new ecs.FargateService(scope, 'Service', {
 
 `minHealthyPercent: 0` là sự cho phép để ECS đưa số task đang chạy về không. `maxHealthyPercent: 100` cấm nó chạy hai task. Hai giá trị đó cùng nhau biến một lần thay thế kiểu rolling thành dừng rồi mới chạy (`awsplace/cdk/lib/ecs.ts:159-170`).
 
-Cái giá thì rõ ràng: canvas không truy cập được trong suốt cửa sổ deploy, ở mọi lần deploy. Không có sự chồng lấp nào để núp sau, không có task thứ hai phục vụ traffic, và cũng không có autoscaling theo số task, vì một task thứ hai đồng nghĩa với một writer thứ hai. Tôi chọn điều đó thay vì lựa chọn còn lại, là một WAL hỏng.
+Cái giá thì rõ ràng: canvas không truy cập được trong suốt cửa sổ deploy, ở mọi lần deploy. Không có sự chồng lấp nào để núp sau, không có task thứ hai phục vụ traffic, và cũng không có autoscaling theo số task, vì một task thứ hai đồng nghĩa với một writer thứ hai. Mình chọn điều đó thay vì lựa chọn còn lại, là một WAL hỏng.
 
 Nửa còn lại của thỏa thuận này là thời gian tắt. `stopTimeout: Duration.seconds(120)` cho container mức tối đa của ECS để xử lý `SIGTERM` (`ecs.ts:119`). Graceful shutdown ngừng nhận client, đóng các luồng kết nối, và công bố một checkpoint cuối, chỉ thoát với mã 0 nếu checkpoint đó thành công (`runtime-contract.md:118-123`). Nếu task bị kill thay vì tắt êm, các command đã được acknowledge vẫn phục hồi được từ WAL đã đồng bộ trên EFS, và đó chính là tính chất khiến mount bền vững đáng với cái giá về tính khả dụng của nó.
 
@@ -148,7 +148,7 @@ Khởi động là hình ảnh phản chiếu. Task thay thế mount lại đún
   <figcaption>Toàn bộ vòng lặp. Nhánh bên trái là những gì EFS access point làm cho khả thi; nhánh bên phải là những gì một volume phạm vi task sẽ làm với canvas ở mỗi lần deploy.</figcaption>
 </figure>
 
-Kết quả là đúng thứ tôi muốn từ đầu. Một lần deploy giờ là một bài tập phục hồi mà tôi có thể ngồi xem, và canvas ở phía bên kia của nó chính là canvas tôi đã để lại.
+Kết quả là đúng thứ mình muốn từ đầu. Một lần deploy giờ là một bài tập phục hồi mà mình có thể ngồi xem, và canvas ở phía bên kia của nó chính là canvas mình đã để lại.
 
 ## References
 
