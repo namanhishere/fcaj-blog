@@ -1,0 +1,127 @@
+<nav id="sidebar" class="{{if $.Site.Params.showVisitedLinks }}showVisitedLinks{{end}}" aria-label="Main navigation">
+  {{ $currentNode := . }}
+  {{ $showvisitedlinks := .Site.Params.showVisitedLinks }}
+
+  <div class="rail-header">
+    <button class="icon-btn rail-toggle" type="button" aria-label="Collapse sidebar" title="Collapse sidebar">
+      ←
+    </button>
+    <button class="icon-btn theme-btn" type="button" aria-label="Toggle light/dark mode" title="Toggle light/dark mode">
+      ◐
+    </button>
+    {{if not .Site.Params.disableSearch}}
+      {{ partial "search.html" . }}
+    {{end}}
+  </div>
+
+  <div class="rail-nav">
+    <ul class="topics">
+      {{if eq .Site.Params.ordersectionsby "title"}}
+        {{range .Site.Home.Sections.ByTitle}}
+          {{ template "section-tree-nav" dict "sect" . "currentnode" $currentNode "showvisitedlinks" $showvisitedlinks}}
+        {{end}}
+      {{else}}
+        {{range .Site.Home.Sections.ByWeight}}
+          {{ template "section-tree-nav" dict "sect" . "currentnode" $currentNode "showvisitedlinks" $showvisitedlinks}}
+        {{end}}
+      {{end}}
+    </ul>
+
+    {{ $disableShortcutsTitle := .Site.Params.DisableShortcutsTitle}}
+    {{with .Site.Menus.shortcuts}}
+    <div class="rail-section-label">
+      {{ if not $disableShortcutsTitle}}{{ T "Shortcuts-Title"}}{{ end }}
+    </div>
+    <ul>
+      {{ range sort . "Weight"}}
+      <li>
+        <a href="{{.URL | absLangURL }}">{{safeHTML .Name}}</a>
+      </li>
+      {{end}}
+    </ul>
+    {{end}}
+
+  </div>
+
+  {{ if hugo.IsMultilingual }}
+  <div class="rail-lang">
+    <div class="rail-section-label">{{ T "Language" }}</div>
+    <div class="lang-switch">
+      <select id="select-language" onchange="location = this.value;" aria-label="Select language">
+        {{ $siteLanguages := .Site.Languages}}
+        {{ $pageLang := .Page.Lang}}
+        {{ range .Page.AllTranslations }}
+          {{ $translation := .}}
+          {{ range $siteLanguages }}
+            {{ if eq $translation.Lang .Lang }}
+              <option id="{{ $translation.Language }}" value="{{ $translation.Permalink }}"{{ if eq $pageLang .Lang }} selected{{ end }}>
+                {{ .LanguageName }}
+              </option>
+            {{ end }}
+          {{ end }}
+        {{ end }}
+      </select>
+    </div>
+  </div>
+  {{ end }}
+
+  <div class="rail-footer">
+    {{ partial "menu-footer.html" . }}
+  </div>
+</nav>
+
+<!-- templates -->
+{{ define "section-tree-nav" }}
+  {{ $showvisitedlinks := .showvisitedlinks }}
+  {{ $currentNode := .currentnode }}
+  {{ $currentFileUniqueID := "" }}
+  {{ with $currentNode.File }}{{ $currentFileUniqueID = .UniqueID }}{{ end }}
+  {{with .sect}}
+    {{if and .IsSection (or (not .Params.hidden) $.showhidden)}}
+      {{safeHTML .Params.head}}
+      {{ $numberOfPages := (add (len .Pages) (len .Sections)) }}
+      {{ $hasChildren := ne $numberOfPages 0 }}
+      {{ $isAncestor := .IsAncestor $currentNode }}
+      <li data-nav-id="{{.RelPermalink}}" title="{{.Title}}" class="{{if $isAncestor }}ancestor open{{end}} {{if eq .File.UniqueID $currentFileUniqueID}}active{{end}} {{if .Params.alwaysopen}}ancestor open{{end}} {{if $hasChildren}}has-children{{end}}">
+        <a href="{{.RelPermalink}}">
+          {{safeHTML .Params.Pre}}{{or .Params.menuTitle .LinkTitle .Title}}{{safeHTML .Params.Post}}
+          {{ if $showvisitedlinks}}<i class="fas fa-check read-icon"></i>{{ end }}
+        </a>
+        {{ if $hasChildren }}
+        <button class="section-toggle" type="button" aria-label="Toggle section" aria-expanded="{{if $isAncestor}}true{{else}}false{{end}}">▸</button>
+        <ul>
+          {{ $currentNode.Scratch.Set "pages" .Pages }}
+          {{ if .Sections}}
+            {{ $currentNode.Scratch.Set "pages" (.Pages | union .Sections) }}
+          {{end}}
+          {{ $pages := ($currentNode.Scratch.Get "pages") }}
+          {{if eq .Site.Params.ordersectionsby "title"}}
+            {{ range $pages.ByTitle }}
+              {{ if and .Params.hidden (not $.showhidden) }}
+              {{else}}
+                {{ template "section-tree-nav" dict "sect" . "currentnode" $currentNode "showvisitedlinks" $showvisitedlinks }}
+              {{end}}
+            {{ end }}
+          {{else}}
+            {{ range $pages.ByWeight }}
+              {{ if and .Params.hidden (not $.showhidden) }}
+              {{else}}
+                {{ template "section-tree-nav" dict "sect" . "currentnode" $currentNode "showvisitedlinks" $showvisitedlinks }}
+              {{end}}
+            {{ end }}
+          {{end}}
+        </ul>
+        {{ end }}
+      </li>
+    {{else}}
+      {{ if not .Params.Hidden }}
+      <li data-nav-id="{{.RelPermalink}}" title="{{.Title}}" class="{{if eq .File.UniqueID $currentFileUniqueID}}active{{end}}">
+        <a href="{{ .RelPermalink}}">
+          {{safeHTML .Params.Pre}}{{or .Params.menuTitle .LinkTitle .Title}}{{safeHTML .Params.Post}}
+          {{ if $showvisitedlinks}}<i class="fas fa-check read-icon"></i>{{end}}
+        </a>
+      </li>
+      {{ end }}
+    {{end}}
+  {{ end }}
+{{ end }}

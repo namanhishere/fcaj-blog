@@ -55,9 +55,7 @@
 
   <text x="72" y="170" fill="#ff9900" font-family="Inter, DejaVu Sans, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2.8">{{ $sectionLabel | upper | plainify | htmlEscape }}</text>
 
-  <text fill="#f7f7f8" font-family="Inter, DejaVu Sans, Arial, sans-serif" font-size="82" font-weight="700" letter-spacing="-2.4">
-    {{ partial "link-preview-title.svg" . }}
-  </text>
+{{ partial "link-preview-title.svg" . }}
 
   <g font-family="Inter, DejaVu Sans, Arial, sans-serif" font-size="18" font-weight="500">
     <!-- Keep the 24px frame fixed; 4% overscan trims the photo's bottom-heavy edge. -->

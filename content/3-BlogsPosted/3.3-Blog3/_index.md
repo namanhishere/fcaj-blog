@@ -7,7 +7,7 @@ pre: " <b> 3.3. </b> "
 includeInReport: false
 ---
 
-# The situation
+## The situation
 
 The production datastore of my internship project is not a managed service. It is a C++23 server called RaftDB that runs as a sidecar container inside the same ECS Fargate task as the Go application. The application talks to it over `127.0.0.1:9100` with `DATA_MODE=raftdb-only`, so every pixel on the collaborative canvas, along with the config, bans, milestones and placement history, lives in that one process (`awsplace/cdk/lib/ecs.ts:130-140`).
 
@@ -15,7 +15,7 @@ RaftDB keeps its state on disk. Its runtime contract is explicit about the layou
 
 Fargate does not keep containers. Every `cdk deploy`, every new image digest, every `force-new-deployment` replaces the task with a brand new one. So I had a process whose entire value is the bytes it wrote to disk, running on a platform that throws the disk away.
 
-# What an empty WAL cost me
+## What an empty WAL cost me
 
 Locally this was never a problem, because Docker Compose already gave me a durable disk. The `raftdb` service mounts a named volume, and a named volume survives `docker compose down`:
 
@@ -43,7 +43,7 @@ That snippet is condensed from `awsplace/docker-compose.yml:7-19` and `:138-140`
 
 On Fargate, before I attached durable storage, the opposite happened. The replacement task booted with an empty `/data/raftdb`. There was no WAL tail to replay and no snapshot to restore, so every deploy handed me a blank board. Testing anything that depended on existing state meant re-seeding the canvas by hand first, and I was deploying several times an hour. The interesting part of the work, watching how the server recovered, was the exact part I could not observe, because there was never anything to recover from.
 
-# Why EFS and not the alternatives
+## Why EFS and not the alternatives
 
 I looked at three other options before mounting Amazon EFS, and each failed for a specific reason.
 
@@ -106,7 +106,7 @@ From `awsplace/cdk/lib/ecs.ts:87-125`. Note what did not change: the container s
   <figcaption>The production file system after creation. General Purpose performance mode and Bursting throughput are the defaults the CDK code above produces.</figcaption>
 </figure>
 
-# The access point does the identity work
+## The access point does the identity work
 
 The RaftDB container runs as `user: '10001:10001'` and must start without root privileges (`ecs.ts:101`, `runtime-contract.md:43-46`). A plain NFS mount would have handed it a directory owned by root, and the first WAL write would have failed with a permission error. The usual workaround is an entrypoint that runs `chown` before dropping privileges, which needs root in the container to begin with.
 
@@ -150,22 +150,6 @@ Startup is the mirror image. The replacement task mounts the same access point, 
 
 The result is the thing I actually wanted from the beginning. A deploy is now a recovery exercise I can watch, and the canvas on the other side of it is the canvas I left behind.
 
-# What EFS did not solve
-
-Three limits are worth stating plainly rather than glossing over.
-
-**I did not measure it.** A write-ahead log is a latency-sensitive, small-append workload, and NFS over the network is not a local SSD. Throughput mode and per-operation latency are exactly the things that deserve a measurement here, and I have not taken one. I am not going to put a number in this post that I did not observe. The next step is the EFS metrics in CloudWatch, watched during a real canvas session rather than at idle.
-
-<figure>
-  <img src="/images/3-BlogsPosted/3.3-Blog3/efs-metrics.png" alt="Amazon CloudWatch monitoring metrics for the RaftDB EFS file system showing throughput utilization, IOPS by type, throughput by type and client connections" loading="lazy">
-  <figcaption>The Monitoring tab of the file system during a RaftDB run. These are the metrics I still need to measure and interpret.</figcaption>
-</figure>
-
-**One file system is one failure domain.** Durable is not the same as redundant. If the file system or the single access-point directory under it becomes unavailable or corrupt, the one voter has nothing to fall back to locally, and the health command will fail on the unavailable mount exactly as designed.
-
-**That is why S3 stays in the picture.** The RaftDb container is configured with `RAFTDB_SNAPSHOT_INTERVAL_SECONDS=300` and a snapshot bucket under the prefix `production/member-1`, so a checkpoint is published on that cadence and again during graceful shutdown (`ecs.ts:104-110`). The bucket is versioned, encrypted, SSL-enforced, blocks public access, and expires noncurrent versions after 35 days (`raftdb-application.ts:18-30`). Restoring from it is deliberately manual: `RAFTDB_RESTORE_FROM_S3` is `false` in production and requires an empty local snapshot catalog and WAL directory when set to `true`, because it is an explicit recovery operation and not an automatic fallback (`runtime-contract.md:73-77`).
-
-EFS made my development loop shorter by making state survive the thing that keeps destroying it. It did not make the state safe on its own, and treating a single file system as a backup would be the wrong lesson to take from it.
 
 ## References
 

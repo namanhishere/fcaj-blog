@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="{{ .Page.Language | default "en" }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {{ hugo.Generator }}
+  {{ partial "meta.html" . }}
+  {{ partial "favicon.html" . }}
+  <title>{{ .Title }}{{ if not .IsHome }} :: {{ .Site.Title }}{{ end }}</title>
+  <link href="{{ "css/editorial.css" | relURL }}" rel="stylesheet">
+  <link href="{{ "css/ai-share.css" | relURL }}" rel="stylesheet">
+  <script src="{{ "js/jquery-3.3.1.min.js" | relURL }}"></script>
+  <script src="{{ "js/lunr.min.js" | relURL }}"></script>
+  <script src="{{ "js/auto-complete.js" | relURL }}"></script>
+  <script src="{{ "js/search.js" | relURL }}"></script>
+  <script>
+    var baseurl = "{{ .Site.BaseURL }}";
+  </script>
+  {{ partial "custom-header.html" . }}
+</head>
+<body data-url="{{ .RelPermalink }}">
+  <div class="editorial-shell">
+    {{ partial "menu.html" . }}
+    <section id="body">
+      <div id="overlay"></div>
+      <div id="top-bar">
+        <div class="top-bar-left">
+          <button class="menu-toggle" id="sidebar-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">
+            <i class="fas fa-bars"></i>
+            <span>Menu</span>
+          </button>
+        </div>
+      </div>
+      <div id="body-inner">
+        {{if not .IsHome}}
+        <nav class="breadcrumbs" aria-label="Breadcrumb">
+          {{ template "breadcrumb" dict "page" . "value" .Title }}
+        </nav>
+        {{end}}
+
+        {{ define "breadcrumb" }}
+          {{ $parent := .page.Parent }}
+          {{ if $parent }}
+            {{ $value := (printf "<a href='%s'>%s</a> <span class='sep'>/</span> %s" $parent.RelPermalink $parent.Title .value) }}
+            {{ template "breadcrumb" dict "page" $parent "value" $value }}
+          {{ else }}
+            {{ .value | safeHTML }}
+          {{ end }}
+        {{ end }}

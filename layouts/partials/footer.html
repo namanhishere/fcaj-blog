@@ -1,0 +1,168 @@
+      {{ if .Params.chapter }}</div>{{ end }}
+
+      <!-- Next / previous page navigation -->
+      {{ $currentNode := . }}
+      {{ template "menu-nextprev" dict "menu" .Site.Home "currentnode" $currentNode }}
+      {{ define "menu-nextprev" }}
+        {{ $currentNode := .currentnode }}
+        {{ if ne .menu.Params.hidden true }}
+          {{ if hasPrefix $currentNode.RelPermalink .menu.RelPermalink }}
+            {{ $currentNode.Scratch.Set "NextPageOK" "OK" }}
+            {{ $currentNode.Scratch.Set "prevPage" ($currentNode.Scratch.Get "prevPageTmp") }}
+          {{ else }}
+            {{ if eq ($currentNode.Scratch.Get "NextPageOK") "OK" }}
+              {{ $currentNode.Scratch.Set "NextPageOK" nil }}
+              {{ $currentNode.Scratch.Set "nextPage" .menu }}
+            {{ end }}
+          {{ end }}
+          {{ $currentNode.Scratch.Set "prevPageTmp" .menu }}
+
+          {{ $currentNode.Scratch.Set "pages" .menu.Pages }}
+          {{ if .menu.IsHome }}
+            {{ $currentNode.Scratch.Set "pages" .menu.Sections }}
+          {{ else if .menu.Sections }}
+            {{ $currentNode.Scratch.Set "pages" (.menu.Pages | union .menu.Sections) }}
+          {{ end }}
+          {{ $pages := ($currentNode.Scratch.Get "pages") }}
+
+          {{ range $pages.ByWeight }}
+            {{ template "menu-nextprev" dict "menu" . "currentnode" $currentNode }}
+          {{ end }}
+        {{ end }}
+      {{ end }}
+
+      {{ $showPrevNext := (and (not .Params.disableNextPrev) (not .Site.Params.disableNextPrev)) }}
+      {{ if $showPrevNext }}
+      <nav class="page-nav" aria-label="Page navigation">
+        {{ with ($.Scratch.Get "prevPage") }}
+        <a class="prev" href="{{ .RelPermalink }}" title="{{ .Title }}">
+          <span>←</span> {{ .Title }}
+        </a>
+        {{ end }}
+        {{ with ($.Scratch.Get "nextPage") }}
+        <a class="next" href="{{ .RelPermalink }}" title="{{ .Title }}">
+          {{ .Title }} <span>→</span>
+        </a>
+        {{ end }}
+      </nav>
+      {{ end }}
+
+      </div>
+    </section>
+  </div>
+
+  <script src="{{ "js/highlight.pack.js" | relURL }}"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+  <script src="{{ "mermaid/mermaid.js" | relURL }}"></script>
+  <script>mermaid.initialize({ startOnLoad: true });</script>
+  <script>
+    (function () {
+      var toggle = document.getElementById('sidebar-toggle');
+      var sidebar = document.getElementById('sidebar');
+      var overlay = document.getElementById('overlay');
+
+      function openSidebar() {
+        if (!sidebar || !overlay) return;
+        sidebar.classList.add('open');
+        overlay.classList.add('active');
+        toggle.setAttribute('aria-expanded', 'true');
+      }
+
+      function closeSidebar() {
+        if (!sidebar || !overlay) return;
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+
+      if (toggle) {
+        toggle.addEventListener('click', function (e) {
+          e.preventDefault();
+          if (sidebar.classList.contains('open')) {
+            closeSidebar();
+          } else {
+            openSidebar();
+          }
+        });
+      }
+
+      if (overlay) {
+        overlay.addEventListener('click', closeSidebar);
+      }
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeSidebar();
+      });
+
+      // Theme toggle
+      var themeBtn = document.querySelector('.theme-btn');
+      var html = document.documentElement;
+      var storedTheme = localStorage.getItem('theme');
+      var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var currentTheme = storedTheme || (systemDark ? 'dark' : 'light');
+
+      function applyTheme(theme) {
+        html.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+        if (themeBtn) themeBtn.textContent = theme === 'dark' ? '◑' : '◐';
+      }
+
+      applyTheme(currentTheme);
+
+      if (themeBtn) {
+        themeBtn.addEventListener('click', function () {
+          var next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+          applyTheme(next);
+        });
+      }
+
+      // Rail collapse toggle (desktop)
+      var shell = document.querySelector('.editorial-shell');
+      var railToggle = document.querySelector('.rail-toggle');
+      var railState = localStorage.getItem('rail-collapsed');
+
+      function setRailCollapsed(collapsed) {
+        if (!shell || !railToggle) return;
+        if (collapsed) {
+          shell.classList.add('rail-collapsed');
+          railToggle.setAttribute('aria-label', 'Expand sidebar');
+          railToggle.setAttribute('title', 'Expand sidebar');
+          railToggle.textContent = '→';
+          localStorage.setItem('rail-collapsed', '1');
+        } else {
+          shell.classList.remove('rail-collapsed');
+          railToggle.setAttribute('aria-label', 'Collapse sidebar');
+          railToggle.setAttribute('title', 'Collapse sidebar');
+          railToggle.textContent = '←';
+          localStorage.removeItem('rail-collapsed');
+        }
+      }
+
+      if (railState === '1') setRailCollapsed(true);
+
+      if (railToggle) {
+        railToggle.addEventListener('click', function () {
+          if (window.innerWidth < 960) {
+            closeSidebar();
+          } else {
+            var isCollapsed = shell.classList.contains('rail-collapsed');
+            setRailCollapsed(!isCollapsed);
+          }
+        });
+      }
+
+      // Section toggle (collapsible nav sections)
+      document.querySelectorAll('.section-toggle').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var li = btn.closest('li.has-children');
+          if (!li) return;
+          var isOpen = li.classList.toggle('open');
+          btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+      });
+    })();
+  </script>
+  {{ partial "custom-footer.html" . }}
+</body>
+</html>

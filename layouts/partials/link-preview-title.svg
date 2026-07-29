@@ -1,24 +1,51 @@
-{{- $maxCharacters := 23 -}}
+{{- /* Fits the title inside the 1056px-wide title box by stepping down through
+       size tiers until the wrapped line count fits that tier's line budget.
+       chars ~= 1886 / size (avg glyph advance is ~0.56em for Inter at weight 700);
+       lines are budgeted so the block never crosses the y=510 rule. */ -}}
+{{- $tiers := slice
+      (dict "size" 82 "chars" 23 "maxLines" 3)
+      (dict "size" 67 "chars" 28 "maxLines" 4)
+      (dict "size" 52 "chars" 36 "maxLines" 5)
+      (dict "size" 43 "chars" 43 "maxLines" 6) -}}
 {{- $title := .Title | plainify | htmlUnescape -}}
 {{- $words := split $title " " -}}
-{{- $lines := slice -}}
-{{- $line := "" -}}
-{{- range $words -}}
-  {{- $candidate := cond (eq $line "") . (printf "%s %s" $line .) -}}
-  {{- if and (gt (len $candidate) $maxCharacters) (ne $line "") -}}
-    {{- $lines = $lines | append $line -}}
-    {{- $line = . -}}
-  {{- else -}}
-    {{- $line = $candidate -}}
+{{- $lastIndex := sub (len $tiers) 1 -}}
+{{- $chosen := index $tiers $lastIndex -}}
+{{- $chosenLines := slice -}}
+{{- $settled := false -}}
+{{- range $tierIndex, $tier := $tiers -}}
+  {{- if not $settled -}}
+    {{- $lines := slice -}}
+    {{- $line := "" -}}
+    {{- range $words -}}
+      {{- $candidate := cond (eq $line "") . (printf "%s %s" $line .) -}}
+      {{- if and (gt (strings.RuneCount $candidate) $tier.chars) (ne $line "") -}}
+        {{- $lines = $lines | append $line -}}
+        {{- $line = . -}}
+      {{- else -}}
+        {{- $line = $candidate -}}
+      {{- end -}}
+    {{- end -}}
+    {{- if ne $line "" -}}
+      {{- $lines = $lines | append $line -}}
+    {{- end -}}
+    {{- if or (le (len $lines) $tier.maxLines) (eq $tierIndex $lastIndex) -}}
+      {{- $chosen = $tier -}}
+      {{- $chosenLines = $lines -}}
+      {{- $settled = true -}}
+    {{- end -}}
   {{- end -}}
 {{- end -}}
-{{- if ne $line "" -}}
-  {{- $lines = $lines | append $line -}}
-{{- end -}}
-{{- $hasOverflow := gt (len $lines) 3 -}}
-{{- range $index, $text := first 3 $lines }}
-  {{- if and $hasOverflow (eq $index 2) -}}
-    {{- $text = printf "%s…" ($text | truncate 21 "") -}}
+{{- $size := $chosen.size -}}
+{{- $lineHeight := int (math.Round (mul 1.17 $size)) -}}
+{{- $firstBaseline := add 206 (int (math.Round (mul 0.73 $size))) -}}
+{{- $letterSpacing := printf "%.2f" (mul -0.0293 $size) -}}
+{{- $hasOverflow := gt (len $chosenLines) $chosen.maxLines -}}
+  <text fill="#f7f7f8" font-family="Inter, DejaVu Sans, Arial, sans-serif" font-size="{{ $size }}" font-weight="700" letter-spacing="{{ $letterSpacing }}">
+  {{- range $index, $text := first $chosen.maxLines $chosenLines }}
+    {{- if and $hasOverflow (eq $index (sub $chosen.maxLines 1)) -}}
+      {{- $text = printf "%s…" ($text | truncate (sub $chosen.chars 2) "") -}}
+    {{- end }}
+    <tspan x="72" y="{{ add $firstBaseline (mul $index $lineHeight) }}">{{ $text | htmlEscape }}</tspan>
   {{- end }}
-  <tspan x="72" y="{{ add 274 (mul $index 96) }}">{{ $text | htmlEscape }}</tspan>
-{{- end -}}
+  </text>

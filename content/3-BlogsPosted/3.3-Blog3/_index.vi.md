@@ -7,7 +7,7 @@ pre: " <b> 3.3. </b> "
 includeInReport: false
 ---
 
-# Bối cảnh
+## Bối cảnh
 
 Datastore production của dự án thực tập của tôi không phải là một dịch vụ được quản lý. Đó là một server C++23 tên RaftDB, chạy như một container sidecar trong cùng một ECS Fargate task với ứng dụng Go. Ứng dụng nói chuyện với nó qua `127.0.0.1:9100` với `DATA_MODE=raftdb-only`, nên mọi pixel trên canvas cộng tác, cùng với config, bans, milestones và lịch sử đặt pixel, đều nằm trong đúng một process đó (`awsplace/cdk/lib/ecs.ts:130-140`).
 
@@ -15,7 +15,7 @@ RaftDB giữ trạng thái của nó trên đĩa. Runtime contract của nó nó
 
 Fargate không giữ container. Mỗi lần `cdk deploy`, mỗi image digest mới, mỗi `force-new-deployment` đều thay task bằng một task hoàn toàn mới. Vậy là tôi có một process mà toàn bộ giá trị của nó là những byte nó đã ghi xuống đĩa, chạy trên một nền tảng ném cái đĩa đó đi.
 
-# Một WAL rỗng đã khiến tôi mất những gì
+## Một WAL rỗng đã khiến tôi mất những gì
 
 Ở local thì việc này chưa bao giờ là vấn đề, vì Docker Compose đã cho tôi một đĩa bền vững. Service `raftdb` mount một named volume, và named volume sống sót qua `docker compose down`:
 
@@ -43,7 +43,7 @@ volumes:
 
 Trên Fargate, trước khi tôi gắn storage bền vững, điều ngược lại đã xảy ra. Task thay thế khởi động với `/data/raftdb` rỗng. Không có phần cuối WAL nào để replay và không có snapshot nào để restore, nên mỗi lần deploy tôi lại nhận về một bảng trắng. Muốn kiểm thử bất cứ thứ gì phụ thuộc vào trạng thái có sẵn thì phải gieo lại canvas bằng tay trước, mà tôi thì deploy nhiều lần mỗi giờ. Phần thú vị nhất của công việc, tức là xem server phục hồi ra sao, lại đúng là phần tôi không thể quan sát, vì chẳng bao giờ có gì để phục hồi.
 
-# Vì sao chọn EFS chứ không phải các lựa chọn khác
+## Vì sao chọn EFS chứ không phải các lựa chọn khác
 
 Tôi đã xem xét ba lựa chọn khác trước khi mount Amazon EFS, và mỗi lựa chọn thất bại vì một lý do cụ thể.
 
@@ -149,23 +149,6 @@ Khởi động là hình ảnh phản chiếu. Task thay thế mount lại đún
 </figure>
 
 Kết quả là đúng thứ tôi muốn từ đầu. Một lần deploy giờ là một bài tập phục hồi mà tôi có thể ngồi xem, và canvas ở phía bên kia của nó chính là canvas tôi đã để lại.
-
-# Những gì EFS không giải quyết
-
-Có ba giới hạn nên nói thẳng thay vì nói cho qua.
-
-**Tôi chưa đo.** Một write-ahead log là workload ghi thêm từng khối nhỏ và nhạy với độ trễ, còn NFS qua mạng không phải SSD cục bộ. Throughput mode và độ trễ trên mỗi thao tác đúng là những thứ đáng được đo ở đây, và tôi thì chưa đo. Tôi sẽ không đặt vào bài viết này một con số mà tôi không quan sát được. Bước tiếp theo là xem các metric EFS trong CloudWatch, trong một phiên canvas thật chứ không phải lúc rảnh rỗi.
-
-<figure>
-  <img src="/images/3-BlogsPosted/3.3-Blog3/efs-metrics.png" alt="Các số liệu giám sát CloudWatch của RaftDB EFS file system hiển thị throughput utilization, IOPS by type, throughput by type và client connections" loading="lazy">
-  <figcaption>Tab Monitoring của file system trong một lần chạy RaftDB. Đây là các số liệu tôi vẫn cần đo và diễn giải.</figcaption>
-</figure>
-
-**Một file system là một failure domain.** Bền vững không đồng nghĩa với dự phòng. Nếu file system hoặc thư mục access point duy nhất bên dưới nó trở nên không khả dụng hoặc bị hỏng, voter duy nhất không còn gì để dựa vào ở phía cục bộ, và câu lệnh health sẽ fail trên mount không khả dụng đúng như thiết kế.
-
-**Đó là lý do S3 vẫn còn trong bức tranh.** Container RaftDb được cấu hình với `RAFTDB_SNAPSHOT_INTERVAL_SECONDS=300` và một snapshot bucket dưới prefix `production/member-1`, nên một checkpoint được công bố theo nhịp đó và một lần nữa trong quá trình graceful shutdown (`ecs.ts:104-110`). Bucket bật versioning, được mã hóa, bắt buộc SSL, chặn truy cập công khai, và cho các phiên bản noncurrent hết hạn sau 35 ngày (`raftdb-application.ts:18-30`). Việc restore từ nó được cố ý để thủ công: `RAFTDB_RESTORE_FROM_S3` là `false` trên production và khi đặt thành `true` thì đòi snapshot catalog cục bộ cùng thư mục WAL phải rỗng, vì đó là một thao tác phục hồi tường minh chứ không phải cơ chế dự phòng tự động (`runtime-contract.md:73-77`).
-
-EFS đã làm vòng lặp phát triển của tôi ngắn lại bằng cách khiến trạng thái sống sót qua đúng cái thứ vẫn liên tục phá hủy nó. Nó không tự làm cho trạng thái đó an toàn, và coi một file system duy nhất là bản sao lưu sẽ là bài học sai lấy ra từ chuyện này.
 
 ## References
 

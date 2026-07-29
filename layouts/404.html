@@ -1,0 +1,9 @@
+{{ partial "header.html" . }}
+
+<div class="home-page" style="text-align: center; padding-top: var(--space-3xl);">
+  <h1>{{ T "title-404" }}</h1>
+  <p>{{ T "message-404" }}</p>
+  <p><a href='{{ "" | relLangURL }}'>{{ T "Go-to-homepage" }}</a></p>
+</div>
+
+{{ partial "footer.html" . }}

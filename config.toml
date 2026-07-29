@@ -22,9 +22,7 @@ term = [ "HTML", "RSS", "LINKPREVIEW" ]
   notAlternative = true
 
 [params]
-  # Change default color scheme with a variant one. Can be "red", "blue", "green".
-  themeVariant = "workshop"
-  # Git hub repo link
+  # Editorial redesign: no theme variant, custom header/footer/layouts used.
   editURL = ""
   description = ""
   author = "namanhishere"
@@ -32,7 +30,6 @@ term = [ "HTML", "RSS", "LINKPREVIEW" ]
   showVisitedLinks = true
   disableBreadcrumb = false
   disableNextPrev = false
-  custom_css = ["css/ai-share.css"]
   
 [Languages]
 [Languages.en]

@@ -7,7 +7,7 @@ pre: " <b> 3.1. </b> "
 includeInReport: false
 ---
 
-# Introduction
+## Introduction
 
 During my internship project at FCAJ, I hosted all of the source code on my personal GitLab instance and ran a self-managed GitLab Runner on my home computer for CI/CD.
 
@@ -20,7 +20,7 @@ The machine was not powerful enough to run many pipelines at the same time, so I
 
 That made me wonder: instead of upgrading the hardware, why not use an **AWS EC2 Auto Scaling Group**? AWS still offered a USD 200 student credit, so this was also a good opportunity to build a GitLab Runner that could scale with the number of waiting jobs. It solved a real problem I was facing while giving me hands-on experience with AWS infrastructure.
 
-# Design goals
+## Design goals
 
 I was not trying to build a complete CI/CD platform or replace GitLab SaaS. My goals were much simpler:
 
@@ -32,7 +32,7 @@ I was not trying to build a complete CI/CD platform or replace GitLab SaaS. My g
 
 In short, I wanted GitLab Runner to become a service that “exists only when needed.”
 
-# Architecture
+## Architecture
 
 The system is divided into two parts.
 
@@ -55,7 +55,7 @@ The lifecycle of a job can be summarized as follows:
 4. Logs and results are returned to GitLab.
 5. The worker is discarded after the job and capacity returns to `0`.
 
-## One job per machine
+### One job per machine
 
 The most important part of the Runner configuration is quite short:
 
@@ -78,7 +78,7 @@ The most important part of the Runner configuration is quite short:
 
 
 
-## Capacity should have only one controller
+### Capacity should have only one controller
 
 Terraform creates the Auto Scaling Group, but GitLab Runner is responsible for increasing or decreasing `desired_capacity` during operation. If Terraform also tries to manage this value on every `apply`, the two controllers can pull capacity in different directions.
 
@@ -104,7 +104,7 @@ resource "aws_autoscaling_group" "runner" {
 
 `ignore_changes` does not mean that Terraform stops managing the Auto Scaling Group. Terraform still manages the Launch Template, subnets, tags, and other infrastructure properties; it simply does not overwrite the instance count requested by Runner.
 
-# Prebuilding the Docker image with GitHub Actions
+## Prebuilding the Docker image with GitHub Actions
 
 One of the first issues I encountered was preparing the build environment.
 
@@ -156,7 +156,7 @@ jobs:
 
 The demo still uses `latest` for convenient updates. If stronger reproducibility is required, workers should pull the image by digest or an immutable tag instead of using a tag that can point to different content over time.
 
-# Baking the virtual machine image
+## Baking the virtual machine image
 
 Having a Docker image was not enough.
 
@@ -203,7 +203,7 @@ When the Auto Scaling Group creates a worker, the machine can begin running a jo
 
 Building the AMI takes a few extra minutes, but this is a one-time cost. In return, every worker created afterward starts much faster.
 
-# Observing the worker lifecycle
+## Observing the worker lifecycle
 
 To verify autoscaling, I monitored the Runner logs and the Auto Scaling Group state at the same time:
 
@@ -225,7 +225,7 @@ When the system works correctly, `desired` follows the sequence `0 → 1 → 0`.
   <figcaption>The Runner Manager remains online in GitLab even when the number of EC2 workers is zero.</figcaption>
 </figure>
 
-# Conclusion
+## Conclusion
 
 After completing the setup, my GitLab Runner could scale automatically with the number of waiting pipelines.
 
