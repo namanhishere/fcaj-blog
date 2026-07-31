@@ -7,6 +7,8 @@ pre: " <b> 3.2. </b> "
 includeInReport: false
 ---
 
+> **Original post on Facebook**: [AWS Study Group](https://www.facebook.com/groups/awsstudygroupfcj/posts/2227894604642166)
+
 # The problem
 
 My internship project, **awsplace**, lives on my own GitLab instance at `git.namanhishere.com`. That is the only git remote the repository has. Everything the pipeline does to AWS happens from there: it pushes container images to Amazon ECR, runs `npx cdk deploy` against `AwsplaceStack`, uploads a frontend bundle to Amplify Hosting, and forces a new ECS deployment.

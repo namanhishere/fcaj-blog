@@ -7,7 +7,9 @@ pre: " <b> 3.1. </b> "
 includeInReport: false
 ---
 
-# Giới thiệu
+> **Bài viết gốc trên Facebook**: [AWS Study Group](https://www.facebook.com/groups/awsstudygroupfcj/posts/2225051181593175) · **Source code**: [GitHub](https://github.com/namanhishere/gitlabrunner-ec2-autoscale)
+
+## Giới thiệu
 
 Trong quá trình thực hiện project thực tập tại FCAJ, mình host toàn bộ source code trên GitLab cá nhân và tự dựng một GitLab Runner trên máy ở nhà để chạy CI/CD.
 
@@ -20,7 +22,7 @@ Vấn đề là cấu hình máy không đủ mạnh để chạy nhiều pipeli
 
 Lúc đó mình chợt nghĩ: thay vì nâng cấp phần cứng, tại sao không tận dụng luôn **AWS EC2 Auto Scaling Group**? AWS vẫn còn khoản tín dụng 200 USD dành cho sinh viên, nên đây cũng là cơ hội khá hay để thử triển khai một GitLab Runner có khả năng tự mở rộng theo số lượng job cần chạy. Vừa giải quyết đúng vấn đề mình đang gặp, vừa có dịp thực hành với hạ tầng AWS trên một bài toán thực tế.
 
-# Mục tiêu thiết kế
+## Mục tiêu thiết kế
 
 Mình không đặt mục tiêu xây một hệ thống CI/CD hoàn chỉnh hay thay thế GitLab SaaS. Điều mình muốn chỉ đơn giản là:
 
@@ -32,7 +34,7 @@ Mình không đặt mục tiêu xây một hệ thống CI/CD hoàn chỉnh hay 
 
 Nói ngắn gọn hơn, mình muốn biến GitLab Runner thành một dịch vụ "chỉ tồn tại khi cần".
 
-# Ý tưởng thiết kế kiến trúc
+## Ý tưởng thiết kế kiến trúc
 
 Toàn bộ hệ thống được chia thành hai phần.
 
@@ -55,7 +57,7 @@ Luồng chạy một job có thể tóm tắt như sau:
 4. Log cùng kết quả được trả về GitLab.
 5. Worker bị loại bỏ sau job và capacity quay về `0`.
 
-## Một job trên một máy
+### Một job trên một máy
 
 Phần cấu hình quan trọng nhất của Runner thực ra khá ngắn:
 
@@ -77,7 +79,7 @@ Phần cấu hình quan trọng nhất của Runner thực ra khá ngắn:
 `capacity_per_instance = 1` giới hạn mỗi EC2 chạy một job tại một thời điểm, còn `max_use_count = 1` khiến instance được lên lịch loại bỏ ngay sau lần sử dụng đầu tiên. Mình chấp nhận mất local cache và khả năng tái sử dụng worker để đổi lấy môi trường sạch, dễ dự đoán hơn cho từng pipeline. Trong môi trường production, `aws:latest` cũng nên được pin về một phiên bản plugin cụ thể.
 
 
-## Chỉ nên có một thành phần điều khiển capacity
+### Chỉ nên có một thành phần điều khiển capacity
 
 Terraform tạo Auto Scaling Group ban đầu, nhưng GitLab Runner mới là thành phần tăng hoặc giảm `desired_capacity` trong lúc vận hành. Nếu Terraform vẫn cố quản lý giá trị này ở mỗi lần `apply`, hai controller có thể kéo capacity theo hai hướng khác nhau.
 
@@ -103,7 +105,7 @@ resource "aws_autoscaling_group" "runner" {
 
 `ignore_changes` không có nghĩa là Terraform bỏ quản lý ASG. Terraform vẫn quản lý Launch Template, subnet, tag và các thuộc tính hạ tầng khác; nó chỉ không ghi đè số lượng instance mà Runner đang yêu cầu.
 
-# Prebuilt Docker image bằng GitHub Actions
+## Prebuilt Docker image bằng GitHub Actions
 
 Một vấn đề mình gặp khá sớm là môi trường build.
 
@@ -155,7 +157,7 @@ jobs:
 
 Trong bản demo mình vẫn dùng `latest` để cập nhật nhanh. Nếu cần tính tái lập cao hơn, worker nên pull image theo digest hoặc một tag bất biến thay vì một tag có thể trỏ sang nội dung mới.
 
-# Bake sẵn VM image
+## Bake sẵn VM image
 
 Có Docker image thôi vẫn chưa đủ.
 
@@ -202,7 +204,7 @@ Khi Auto Scaling Group tạo worker mới, máy gần như có thể chạy job 
 
 Việc build AMI mất thêm vài phút, nhưng đây là chi phí chỉ phải trả một lần. Đổi lại, mọi worker được tạo sau đó đều khởi động nhanh hơn đáng kể.
 
-# Quan sát vòng đời worker
+## Quan sát vòng đời worker
 
 Để kiểm tra autoscaling, mình theo dõi đồng thời log của Runner và trạng thái Auto Scaling Group:
 
@@ -224,7 +226,7 @@ Nếu hệ thống hoạt động đúng, `desired` sẽ đi theo chuỗi `0 →
   <figcaption>Kết quả Runner trên trang quản lý của Gitlab</figcaption>
 </figure>
 
-# Tổng kết
+## Tổng kết
 
 Sau khi hoàn thành, GitLab Runner của mình có thể tự động mở rộng theo số lượng pipeline đang chờ.
 
@@ -234,7 +236,7 @@ Khi không có job nào, toàn bộ EC2 worker đều được tắt và chi ph�
 
 Dù vậy, project này giúp mình hiểu rõ hơn cách GitLab Runner Autoscaler hoạt động, cách kết hợp Terraform, Packer và AWS Auto Scaling Group để xây dựng một hệ thống CI/CD có khả năng tự mở rộng mà không phải duy trì một cụm máy chạy liên tục.
 
-## Tài liệu tham khảo
+### Tài liệu tham khảo
 
 - [GitLab Docker Autoscaler executor](https://docs.gitlab.com/runner/executors/docker_autoscaler/)
 - [GitLab Runner advanced configuration](https://docs.gitlab.com/runner/configuration/advanced-configuration/#the-runnersautoscaler-section)

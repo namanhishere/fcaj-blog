@@ -7,6 +7,8 @@ pre: " <b> 3.2. </b> "
 includeInReport: false
 ---
 
+> **Bài viết gốc trên Facebook**: [AWS Study Group](https://www.facebook.com/groups/awsstudygroupfcj/posts/2227894604642166)
+
 # Vấn đề
 
 Project thực tập của mình, **awsplace**, nằm trên GitLab instance mà mình tự dựng ở `git.namanhishere.com`. Đó là git remote duy nhất của repository. Mọi thứ pipeline làm với AWS đều bắt đầu từ đây: push container image lên Amazon ECR, chạy `npx cdk deploy` cho `AwsplaceStack`, upload bundle frontend lên Amplify Hosting, và force một lần deploy mới trên ECS.

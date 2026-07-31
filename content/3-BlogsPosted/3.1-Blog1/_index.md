@@ -7,6 +7,8 @@ pre: " <b> 3.1. </b> "
 includeInReport: false
 ---
 
+> **Original post on Facebook**: [AWS Study Group](https://www.facebook.com/groups/awsstudygroupfcj/posts/2225051181593175) · **Source code**: [GitHub](https://github.com/namanhishere/gitlabrunner-ec2autoscale)
+
 ## Introduction
 
 During my internship project at FCAJ, I hosted all of the source code on my personal GitLab instance and ran a self-managed GitLab Runner on my home computer for CI/CD.

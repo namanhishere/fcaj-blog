@@ -7,6 +7,8 @@ pre: " <b> 3.3. </b> "
 includeInReport: false
 ---
 
+> **Bài viết gốc trên Facebook**: [AWS Study Group](https://www.facebook.com/groups/awsstudygroupfcj/posts/2228318824599744)
+
 ## Bối cảnh
 
 Datastore production của dự án thực tập của mình không phải là một dịch vụ được quản lý. Đó là một server C++23 tên RaftDB, chạy như một container sidecar trong cùng một ECS Fargate task với ứng dụng Go. Ứng dụng nói chuyện với nó qua `127.0.0.1:9100` với `DATA_MODE=raftdb-only`, nên mọi pixel trên canvas cộng tác, cùng với config, bans, milestones và lịch sử đặt pixel, đều nằm trong đúng một process đó (`awsplace/cdk/lib/ecs.ts:130-140`).

@@ -7,6 +7,8 @@ pre: " <b> 3.3. </b> "
 includeInReport: false
 ---
 
+> **Original post on Facebook**: [AWS Study Group](https://www.facebook.com/groups/awsstudygroupfcj/posts/2228318824599744)
+
 ## The situation
 
 The production datastore of my internship project is not a managed service. It is a C++23 server called RaftDB that runs as a sidecar container inside the same ECS Fargate task as the Go application. The application talks to it over `127.0.0.1:9100` with `DATA_MODE=raftdb-only`, so every pixel on the collaborative canvas, along with the config, bans, milestones and placement history, lives in that one process (`awsplace/cdk/lib/ecs.ts:130-140`).
