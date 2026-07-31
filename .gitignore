@@ -26,8 +26,8 @@ bitmask-demo/
 # 2-Proposal/
 4-EventParticipated/
 # 5-Workshop/
-6-Self-evaluation/
-7-Feedback/
+# 6-Self-evaluation/
+# 7-Feedback/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
