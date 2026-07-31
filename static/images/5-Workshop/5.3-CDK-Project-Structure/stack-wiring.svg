@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 630" font-family="Arial, sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#8C4FFF"/></marker>
+    <filter id="sh"><feDropShadow dx="1" dy="1" stdDeviation="1.2" flood-opacity="0.08"/></filter>
+  </defs>
+  <rect width="720" height="630" fill="#F4F7FB" rx="10"/>
+  <text x="360" y="28" text-anchor="middle" font-size="19" font-weight="bold" fill="#232F3E">AwsplaceStack — Resource Creation Order</text>
+  <line x1="150" y1="38" x2="570" y2="38" stroke="#FF9900" stroke-width="2"/>
+
+  <rect x="25" y="52" width="310" height="550" rx="8" fill="#FFF" stroke="#D5DBDB" stroke-width="1"/>
+  <text x="180" y="78" text-anchor="middle" font-size="14" font-weight="bold" fill="#232F3E">Module / Resource</text>
+
+  <rect x="385" y="52" width="310" height="550" rx="8" fill="#FFF" stroke="#D5DBDB" stroke-width="1"/>
+  <text x="540" y="78" text-anchor="middle" font-size="14" font-weight="bold" fill="#232F3E">Dependencies (Why)</text>
+
+  <!-- Items -->
+  <g font-size="12">
+    <rect x="45" y="92" width="270" height="38" rx="4" fill="#8C4FFF"/><text x="180" y="116" text-anchor="middle" font-weight="bold" fill="#fff">① createVpc → VPC + 2 Public Subnets</text>
+    <rect x="405" y="92" width="270" height="38" rx="4" fill="#F3EDFF"/><text x="540" y="116" text-anchor="middle" fill="#545B64">None — Foundation layer</text>
+
+    <rect x="45" y="140" width="270" height="38" rx="4" fill="#3F8624"/><text x="180" y="164" text-anchor="middle" font-weight="bold" fill="#fff">② createDatabase → 4 DynamoDB Tables</text>
+    <rect x="405" y="140" width="270" height="38" rx="4" fill="#E8F5E0"/><text x="540" y="164" text-anchor="middle" fill="#545B64">None — Independent</text>
+
+    <rect x="45" y="188" width="270" height="38" rx="4" fill="#C925D1"/><text x="180" y="212" text-anchor="middle" font-weight="bold" fill="#fff">③ createEcr → Repository (awsplace-ecs)</text>
+    <rect x="405" y="188" width="270" height="38" rx="4" fill="#F8E0FF"/><text x="540" y="212" text-anchor="middle" fill="#545B64">None — Independent</text>
+
+    <rect x="45" y="236" width="270" height="38" rx="4" fill="#E8712B"/><text x="180" y="260" text-anchor="middle" font-weight="bold" fill="#fff">④ createStorage → S3 Buckets (Import)</text>
+    <rect x="405" y="236" width="270" height="38" rx="4" fill="#FDE5D5"/><text x="540" y="260" text-anchor="middle" fill="#545B64">None — Imported by name from AWS</text>
+
+    <rect x="45" y="284" width="270" height="38" rx="4" fill="#DD344C"/><text x="180" y="308" text-anchor="middle" font-weight="bold" fill="#fff">⑤ createIamRoles → 3 IAM Roles</text>
+    <rect x="405" y="284" width="270" height="38" rx="4" fill="#FFE0E5"/><text x="540" y="308" text-anchor="middle" fill="#545B64">②④ — Needs Table/Bucket ARNs for policies</text>
+
+    <rect x="45" y="332" width="270" height="38" rx="4" fill="#1668B5"/><text x="180" y="356" text-anchor="middle" font-weight="bold" fill="#fff">⑥ createRaftDbAppStorage → EFS</text>
+    <rect x="405" y="332" width="270" height="38" rx="4" fill="#D5E8F8"/><text x="540" y="356" text-anchor="middle" fill="#545B64">①⑤ — VPC + TaskRole for mount</text>
+
+    <rect x="45" y="380" width="270" height="38" rx="4" fill="#5A6C7D"/><text x="180" y="404" text-anchor="middle" font-weight="bold" fill="#fff">⑦ createRoute53 → ACM Wildcard Cert</text>
+    <rect x="405" y="380" width="270" height="38" rx="4" fill="#E5EAED"/><text x="540" y="404" text-anchor="middle" fill="#545B64">None — DNS zone pre-exists</text>
+
+    <rect x="45" y="428" width="270" height="38" rx="4" fill="#E65100"/><text x="180" y="452" text-anchor="middle" font-weight="bold" fill="#fff">⑧ createLambda → Function + Secret</text>
+    <rect x="405" y="428" width="270" height="38" rx="4" fill="#FFE5D5"/><text x="540" y="452" text-anchor="middle" fill="#545B64">⑤ — LambdaExecutionRole</text>
+
+    <rect x="45" y="476" width="270" height="38" rx="4" fill="#7D2615"/><text x="180" y="500" text-anchor="middle" font-weight="bold" fill="#fff">⑨ createApiGateway → HTTP API v2</text>
+    <rect x="405" y="476" width="270" height="38" rx="4" fill="#F0E0DD"/><text x="540" y="500" text-anchor="middle" fill="#545B64">⑦⑧ — WildcardCert + Lambda</text>
+
+    <rect x="45" y="524" width="270" height="38" rx="4" fill="#2C98A0"/><text x="180" y="548" text-anchor="middle" font-weight="bold" fill="#fff">⑩ createAmplify → App + Domain</text>
+    <rect x="405" y="524" width="270" height="38" rx="4" fill="#D5F0F5"/><text x="540" y="548" text-anchor="middle" fill="#545B64">None — Amplify self-manages TLS</text>
+
+    <rect x="45" y="572" width="270" height="38" rx="4" fill="#D13212"/><text x="180" y="596" text-anchor="middle" font-weight="bold" fill="#fff">⑪ createEcs → Fargate + ALB</text>
+    <rect x="405" y="572" width="270" height="38" rx="4" fill="#FFE0DD"/><text x="540" y="596" text-anchor="middle" fill="#545B64">ALL above — VPC, IAM, ECR, DB, Storage, RaftDB, Lambda</text>
+  </g>
+
+  <!-- Left arrow chain -->
+  <g stroke="#8C4FFF" stroke-width="1.2">
+    <line x1="180" y1="130" x2="180" y2="140" marker-end="url(#arr)"/>
+    <line x1="180" y1="178" x2="180" y2="188" marker-end="url(#arr)"/>
+    <line x1="180" y1="226" x2="180" y2="236" marker-end="url(#arr)"/>
+    <line x1="180" y1="274" x2="180" y2="284" marker-end="url(#arr)"/>
+    <line x1="180" y1="322" x2="180" y2="332" marker-end="url(#arr)"/>
+    <line x1="180" y1="370" x2="180" y2="380" marker-end="url(#arr)"/>
+    <line x1="180" y1="418" x2="180" y2="428" marker-end="url(#arr)"/>
+    <line x1="180" y1="466" x2="180" y2="476" marker-end="url(#arr)"/>
+    <line x1="180" y1="514" x2="180" y2="524" marker-end="url(#arr)"/>
+    <line x1="180" y1="562" x2="180" y2="572" marker-end="url(#arr)"/>
+  </g>
+
+  <text x="360" y="618" text-anchor="middle" font-size="11" fill="#687078">Each step builds on resources created in prior steps — ECS (11) depends on virtually every other resource.</text>
+</svg>

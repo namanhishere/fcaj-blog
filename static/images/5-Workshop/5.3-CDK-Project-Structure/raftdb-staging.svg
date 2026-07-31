@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 500" font-family="Arial, sans-serif">
+  <defs><filter id="sh"><feDropShadow dx="1" dy="1" stdDeviation="1.2" flood-opacity="0.08"/></filter></defs>
+  <rect width="940" height="500" fill="#F4F7FB" rx="10"/>
+  <text x="470" y="28" text-anchor="middle" font-size="19" font-weight="bold" fill="#232F3E">RaftDB Staging Stack — Qualification &amp; Recovery Environment</text>
+  <line x1="200" y1="38" x2="740" y2="38" stroke="#FF9900" stroke-width="2"/>
+
+  <!-- Single Node -->
+  <rect x="20" y="52" width="440" height="215" rx="8" fill="#FFF" stroke="#3F8624" stroke-width="2" filter="url(#sh)"/>
+  <rect x="20" y="52" width="440" height="32" rx="8" fill="#3F8624"/>
+  <text x="240" y="74" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">Single-Node Mode (nodeCount=1)</text>
+
+  <rect x="40" y="95" width="200" height="90" rx="6" fill="#EDF8ED" stroke="#C8E6C0" stroke-width="1"/>
+  <text x="140" y="116" text-anchor="middle" font-size="12" font-weight="bold" fill="#3F8624">☁ VPC: 1 AZ, Public Subnet</text>
+  <g font-size="10" fill="#545B64">
+    <text x="55" y="136">TCP 9100 from anywhere</text>
+    <text x="55" y="152">ECS Fargate (single task)</text>
+    <text x="55" y="168">RaftDB container :9100</text>
+    <text x="55" y="184">Direct access for testing</text>
+  </g>
+
+  <rect x="255" y="95" width="190" height="90" rx="6" fill="#EDF8ED" stroke="#C8E6C0" stroke-width="1"/>
+  <text x="350" y="116" text-anchor="middle" font-size="12" font-weight="bold" fill="#3F8624">📦 Storage</text>
+  <g font-size="10" fill="#545B64">
+    <text x="270" y="136">EFS: /raftdb/staging-1</text>
+    <text x="270" y="152">S3 snapshot bucket</text>
+    <text x="270" y="168">CloudWatch Dashboard</text>
+    <text x="270" y="184">ECS + ECR shared</text>
+  </g>
+
+  <rect x="40" y="197" width="405" height="55" rx="4" fill="#C8E6C0"/>
+  <text x="243" y="218" text-anchor="middle" font-size="11" font-weight="bold" fill="#3F8624">Use case: Fast qualification of new RaftDB builds</text>
+  <text x="243" y="235" text-anchor="middle" font-size="9" fill="#545B64">Single node · No peer dependency · dataGeneration=staging-1 (bump for fresh WAL)</text>
+  <text x="243" y="249" text-anchor="middle" font-size="9" fill="#545B64">Restore from S3 requires dataGeneration prefix restore-</text>
+
+  <!-- Three Node -->
+  <rect x="480" y="52" width="440" height="215" rx="8" fill="#FFF" stroke="#1668B5" stroke-width="2" filter="url(#sh)"/>
+  <rect x="480" y="52" width="440" height="32" rx="8" fill="#1668B5"/>
+  <text x="700" y="74" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">Three-Node Raft Cluster (nodeCount=3)</text>
+
+  <rect x="500" y="95" width="200" height="90" rx="6" fill="#EDF2F8" stroke="#B5D5F5" stroke-width="1"/>
+  <text x="600" y="116" text-anchor="middle" font-size="12" font-weight="bold" fill="#1668B5">☁ VPC: 3 AZs, Private Isolated</text>
+  <g font-size="10" fill="#545B64">
+    <text x="515" y="136">Member 1 (AZ 1) :9101 peer</text>
+    <text x="515" y="152">Member 2 (AZ 2) :9101 peer</text>
+    <text x="515" y="168">Member 3 (AZ 3) :9101 peer</text>
+    <text x="515" y="184">Per-member EFS + SG</text>
+  </g>
+
+  <rect x="715" y="95" width="190" height="90" rx="6" fill="#EDF2F8" stroke="#B5D5F5" stroke-width="1"/>
+  <text x="810" y="116" text-anchor="middle" font-size="12" font-weight="bold" fill="#1668B5">🔗 Networking</text>
+  <g font-size="10" fill="#545B64">
+    <text x="730" y="136">NLB (TCP 9100)</text>
+    <text x="730" y="152">Cloud Map Namespace</text>
+    <text x="730" y="168">Raft peer discovery</text>
+    <text x="730" y="184">Leader election</text>
+  </g>
+
+  <rect x="500" y="197" width="405" height="55" rx="4" fill="#B5D5F5"/>
+  <text x="703" y="218" text-anchor="middle" font-size="11" font-weight="bold" fill="#1668B5">Use case: Full Raft consensus qualification + Recovery Drills</text>
+  <text x="703" y="235" text-anchor="middle" font-size="9" fill="#545B64">3-node Raft cluster with NLB, peer-to-peer, leader election, log replication</text>
+  <text x="703" y="249" text-anchor="middle" font-size="9" fill="#545B64">Member replacement · Snapshot restore · Quorum validation</text>
+
+  <!-- Monitoring -->
+  <rect x="20" y="285" width="440" height="115" rx="6" fill="#FFF" stroke="#D5DBDB" stroke-width="1"/>
+  <text x="240" y="308" text-anchor="middle" font-size="13" font-weight="bold" fill="#232F3E">📊 CloudWatch Monitoring &amp; Alarms</text>
+  <g font-size="10">
+    <rect x="35" y="320" width="195" height="32" rx="4" fill="#FFEDED"/><text x="133" y="340" text-anchor="middle" fill="#C62828">SnapshotAgeAlarm: &gt;900s</text>
+    <rect x="245" y="320" width="200" height="32" rx="4" fill="#FFEDED"/><text x="345" y="340" text-anchor="middle" fill="#C62828">RestoreFailureAlarm: WalErrors &gt;0</text>
+    <rect x="35" y="358" width="195" height="32" rx="4" fill="#FFF8E8"/><text x="133" y="378" text-anchor="middle" fill="#E67E00">DeployStability: CPU &lt;1% (5 periods)</text>
+    <rect x="245" y="358" width="200" height="32" rx="4" fill="#FFF8E8"/><text x="345" y="378" text-anchor="middle" fill="#E67E00">NLB Liveness: healthy &lt; count</text>
+  </g>
+
+  <!-- Replacement -->
+  <rect x="480" y="285" width="440" height="115" rx="6" fill="#FFF8E8" stroke="#FFB300" stroke-width="1"/>
+  <text x="700" y="308" text-anchor="middle" font-size="13" font-weight="bold" fill="#E67E00">🔄 Member Replacement Procedure (7 Steps)</text>
+  <g font-size="9" fill="#545B64">
+    <text x="500" y="328">① Remove old member from Raft configuration</text>
+    <text x="500" y="343">② Stop old ECS task (desiredCount=0)</text>
+    <text x="500" y="358">③ Provision fresh EFS access point (bump dataGeneration)</text>
+    <text x="500" y="373">④ Start replacement task (empty WAL, clean catalog)</text>
+    <text x="730" y="328">⑤ Install snapshot + WAL tail from peer</text>
+    <text x="730" y="343">⑥ Add member back to Raft cluster</text>
+    <text x="730" y="358">⑦ Verify quorum + converged applied index</text>
+    <text x="730" y="378" fill="#DD344C">⚠ Never remove 2 voters at once</text>
+  </g>
+
+  <!-- Safety -->
+  <rect x="20" y="415" width="900" height="65" rx="6" fill="#FFEDED" stroke="#EF9A9A" stroke-width="2"/>
+  <text x="470" y="438" text-anchor="middle" font-size="13" font-weight="bold" fill="#C62828">⚠ Critical Safety Rules from RaftDB Staging Stack</text>
+  <g font-size="10" fill="#545B64">
+    <circle cx="45" cy="458" r="3" fill="#DD344C"/><text x="55" y="462">Never remove two voters at once — can lose quorum permanently</text>
+    <circle cx="45" cy="474" r="3" fill="#DD344C"/><text x="55" y="478">Never reuse a member ID while another task with that ID can still run</text>
+    <circle cx="500" cy="458" r="3" fill="#DD344C"/><text x="510" y="462">Emergency quorum changes require service owner written approval + verified backup</text>
+    <circle cx="500" cy="474" r="3" fill="#DD344C"/><text x="510" y="478">Staging depends on main stack — shares ECR through Fn.importValue()</text>
+  </g>
+</svg>

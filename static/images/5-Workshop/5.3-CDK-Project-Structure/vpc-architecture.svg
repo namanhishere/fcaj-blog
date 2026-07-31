@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 460" font-family="Arial, sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#545B64"/></marker>
+    <filter id="sh"><feDropShadow dx="1" dy="1" stdDeviation="1.2" flood-opacity="0.08"/></filter>
+  </defs>
+  <rect width="880" height="460" fill="#F4F7FB" rx="10"/>
+  <text x="440" y="28" text-anchor="middle" font-size="19" font-weight="bold" fill="#232F3E">VPC Architecture — 2 Availability Zones, Public Subnets Only</text>
+  <line x1="200" y1="38" x2="680" y2="38" stroke="#FF9900" stroke-width="2"/>
+
+  <!-- AWS Cloud border -->
+  <rect x="18" y="52" width="844" height="398" rx="10" fill="none" stroke="#FF9900" stroke-width="3" stroke-dasharray="12,6"/>
+  <text x="830" y="70" text-anchor="end" font-size="12" fill="#FF9900" font-weight="bold">AWS Cloud — ap-southeast-1</text>
+
+  <!-- IGW -->
+  <rect x="330" y="62" width="220" height="30" rx="15" fill="#FF9900" filter="url(#sh)"/>
+  <text x="440" y="82" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">Internet Gateway (IGW)</text>
+
+  <!-- AZ 1 -->
+  <rect x="30" y="105" width="395" height="330" rx="8" fill="#E8F0FE" stroke="#8C4FFF" stroke-width="2"/>
+  <text x="228" y="130" text-anchor="middle" font-size="15" font-weight="bold" fill="#8C4FFF">Availability Zone 1</text>
+
+  <!-- Public Subnet 1 -->
+  <rect x="50" y="145" width="355" height="278" rx="6" fill="#E0F5E0" stroke="#3F8624" stroke-width="2" stroke-dasharray="8,4"/>
+  <text x="228" y="168" text-anchor="middle" font-size="13" font-weight="bold" fill="#3F8624">Public Subnet — 10.0.0.0/24</text>
+
+  <!-- ECS Task Box -->
+  <rect x="75" y="185" width="155" height="72" rx="6" fill="#D13212" filter="url(#sh)"/>
+  <text x="153" y="208" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">ECS Fargate Task</text>
+  <text x="153" y="225" text-anchor="middle" font-size="9" fill="#FFD2CC">App Container :8980</text>
+  <text x="153" y="240" text-anchor="middle" font-size="9" fill="#FFD2CC">RaftDB Sidecar :9100</text>
+  <text x="153" y="253" text-anchor="middle" font-size="8" fill="#FFA599">assignPublicIp: true</text>
+
+  <!-- ALB Box -->
+  <rect x="252" y="185" width="138" height="72" rx="6" fill="#1668B5" filter="url(#sh)"/>
+  <text x="321" y="208" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">ALB</text>
+  <text x="321" y="224" text-anchor="middle" font-size="9" fill="#B5D5F5">HTTPS Listener :443</text>
+  <text x="321" y="238" text-anchor="middle" font-size="9" fill="#B5D5F5">HTTP → HTTPS (301)</text>
+  <text x="321" y="252" text-anchor="middle" font-size="9" fill="#B5D5F5">Idle Timeout: 3600s</text>
+
+  <!-- SG chain arrow -->
+  <line x1="230" y1="221" x2="250" y2="221" stroke="#FF9900" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- ECS SG -->
+  <rect x="75" y="272" width="315" height="40" rx="4" fill="#FFF" stroke="#D5DBDB" stroke-width="1"/>
+  <text x="233" y="292" text-anchor="middle" font-size="10" font-weight="bold" fill="#232F3E">ECS Security Group</text>
+  <text x="233" y="306" text-anchor="middle" font-size="9" fill="#545B64">Ingress: TCP 8980 from ALB SG only</text>
+
+  <!-- ALB SG -->
+  <rect x="75" y="325" width="315" height="40" rx="4" fill="#FFF" stroke="#D5DBDB" stroke-width="1"/>
+  <text x="233" y="345" text-anchor="middle" font-size="10" font-weight="bold" fill="#232F3E">ALB Security Group</text>
+  <text x="233" y="359" text-anchor="middle" font-size="9" fill="#545B64">Ingress: TCP 80, 443 from 0.0.0.0/0</text>
+
+  <!-- AZ 2 -->
+  <rect x="445" y="105" width="395" height="330" rx="8" fill="#E8F0FE" stroke="#8C4FFF" stroke-width="2"/>
+  <text x="643" y="130" text-anchor="middle" font-size="15" font-weight="bold" fill="#8C4FFF">Availability Zone 2</text>
+
+  <rect x="465" y="145" width="355" height="278" rx="6" fill="#E0F5E0" stroke="#3F8624" stroke-width="2" stroke-dasharray="8,4"/>
+  <text x="643" y="168" text-anchor="middle" font-size="13" font-weight="bold" fill="#3F8624">Public Subnet — 10.0.1.0/24</text>
+
+  <rect x="490" y="185" width="305" height="220" rx="6" fill="#FFF" stroke="#D5DBDB" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="643" y="215" text-anchor="middle" font-size="12" fill="#687078">ECS Tasks Launched Here</text>
+  <text x="643" y="235" text-anchor="middle" font-size="11" fill="#687078">by ECS Scheduler</text>
+  <text x="643" y="260" text-anchor="middle" font-size="11" fill="#687078">(High Availability)</text>
+  <text x="643" y="285" text-anchor="middle" font-size="10" fill="#687078">Same Security Groups</text>
+  <text x="643" y="305" text-anchor="middle" font-size="10" fill="#687078">Same Route Tables</text>
+
+  <!-- Cross-out NAT -->
+  <text x="790" y="360" text-anchor="middle" font-size="80" fill="#DD344C" opacity="0.35">✕</text>
+  <text x="790" y="388" text-anchor="middle" font-size="13" fill="#DD344C" font-weight="bold">NO NAT GATEWAY</text>
+  <text x="790" y="404" text-anchor="middle" font-size="11" fill="#DD344C">$64/month saved</text>
+
+  <!-- Lambda outside VPC -->
+  <rect x="18" y="58" width="140" height="34" rx="6" fill="#E65100" filter="url(#sh)"/>
+  <text x="88" y="73" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">λ Lambda</text>
+  <text x="88" y="86" text-anchor="middle" font-size="8" fill="#FFCC80">NOT in VPC</text>
+
+  <!-- IGW connection arrows -->
+  <line x1="440" y1="92" x2="321" y2="183" stroke="#FF9900" stroke-width="1.2" marker-end="url(#arr)" opacity="0.6"/>
+  <line x1="440" y1="92" x2="643" y2="183" stroke="#FF9900" stroke-width="1.2" marker-end="url(#arr)" opacity="0.6"/>
+</svg>

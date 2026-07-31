@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 420" font-family="Arial, sans-serif">
+  <defs><filter id="sh"><feDropShadow dx="1" dy="1" stdDeviation="1.2" flood-opacity="0.08"/></filter></defs>
+  <rect width="880" height="420" fill="#F4F7FB" rx="10"/>
+  <text x="440" y="28" text-anchor="middle" font-size="19" font-weight="bold" fill="#232F3E">Storage Architecture — ECR + S3 + EFS</text>
+  <line x1="220" y1="38" x2="660" y2="38" stroke="#FF9900" stroke-width="2"/>
+
+  <!-- ECR -->
+  <rect x="20" y="52" width="410" height="175" rx="8" fill="#FFF" stroke="#C925D1" stroke-width="2" filter="url(#sh)"/>
+  <rect x="20" y="52" width="410" height="32" rx="8" fill="#C925D1"/>
+  <text x="225" y="73" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">📦 ECR Repository — awsplace-ecs</text>
+
+  <rect x="40" y="95" width="165" height="60" rx="5" fill="#C925D1" opacity="0.85"/>
+  <text x="123" y="118" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">App Docker Images</text>
+  <text x="123" y="135" text-anchor="middle" font-size="9" fill="#F5D5FF">Commit-based tags (mutable)</text>
+  <text x="123" y="149" text-anchor="middle" font-size="9" fill="#F5D5FF">ECS_IMAGE_TAG from CI</text>
+
+  <line x1="205" y1="125" x2="245" y2="125" stroke="#C925D1" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <rect x="250" y="95" width="165" height="60" rx="5" fill="#C925D1" opacity="0.85"/>
+  <text x="333" y="118" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">RaftDB Docker Images</text>
+  <text x="333" y="135" text-anchor="middle" font-size="9" fill="#F5D5FF">raftdb-* tags (IMMUTABLE)</text>
+  <text x="333" y="149" text-anchor="middle" font-size="9" fill="#F5D5FF">SHA256 digest only</text>
+
+  <rect x="40" y="168" width="375" height="48" rx="4" fill="#F8E0FF" stroke="#E0B0F0" stroke-width="1"/>
+  <g font-size="10" fill="#545B64">
+    <text x="55" y="186">✓ imageScanOnPush: true — security scan every push</text>
+    <text x="55" y="200">✓ Lifecycle: maxImageCount=10 — keep last 10 images</text>
+    <text x="55" y="214">✓ RemovalPolicy.RETAIN — survives cdk destroy cycles</text>
+  </g>
+
+  <!-- S3 -->
+  <rect x="450" y="52" width="410" height="175" rx="8" fill="#FFF" stroke="#E8712B" stroke-width="2" filter="url(#sh)"/>
+  <rect x="450" y="52" width="410" height="32" rx="8" fill="#E8712B"/>
+  <text x="655" y="73" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">🪣 S3 Buckets — Imported by Name</text>
+
+  <rect x="470" y="95" width="180" height="55" rx="5" fill="#E8712B" opacity="0.85"/>
+  <text x="560" y="115" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">Canvas Bucket</text>
+  <text x="560" y="131" text-anchor="middle" font-size="9" fill="#FFE0C8">awsplace-canvas-{account}</text>
+  <text x="560" y="145" text-anchor="middle" font-size="9" fill="#FFE0C8">Versioned · canvas/canvas.bin</text>
+
+  <rect x="665" y="95" width="180" height="55" rx="5" fill="#E8712B" opacity="0.85"/>
+  <text x="755" y="115" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">Exports Bucket</text>
+  <text x="755" y="131" text-anchor="middle" font-size="9" fill="#FFE0C8">awsplace-exports-{account}</text>
+  <text x="755" y="145" text-anchor="middle" font-size="9" fill="#FFE0C8">PNG exports (.py)</text>
+
+  <rect x="470" y="163" width="375" height="48" rx="4" fill="#FDE5D5" stroke="#F5C8B0" stroke-width="1"/>
+  <g font-size="10" fill="#545B64">
+    <text x="485" y="181">✓ Bucket.fromBucketName() — imported, not created by CDK</text>
+    <text x="485" y="195">✓ Not managed by CloudFormation stack — survive cdk destroy</text>
+    <text x="485" y="209">✓ Account ID suffix ensures uniqueness per AWS account</text>
+  </g>
+
+  <!-- EFS -->
+  <rect x="20" y="245" width="840" height="95" rx="8" fill="#FFF" stroke="#1668B5" stroke-width="2" filter="url(#sh)"/>
+  <rect x="20" y="245" width="840" height="32" rx="8" fill="#1668B5"/>
+  <text x="440" y="266" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">📁 RaftDB Application Storage — EFS + S3 Snapshots (raftdb-application.ts)</text>
+
+  <rect x="45" y="288" width="250" height="42" rx="5" fill="#1668B5" opacity="0.9"/>
+  <text x="170" y="308" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">EFS FileSystem</text>
+  <text x="170" y="323" text-anchor="middle" font-size="9" fill="#B5D5F5">Encrypted · Public subnet mount targets</text>
+
+  <rect x="315" y="288" width="250" height="42" rx="5" fill="#1668B5" opacity="0.9"/>
+  <text x="440" y="308" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">EFS AccessPoint</text>
+  <text x="440" y="323" text-anchor="middle" font-size="9" fill="#B5D5F5">UID/GID 10001:10001 · Perms 0750</text>
+
+  <rect x="585" y="288" width="250" height="42" rx="5" fill="#1668B5" opacity="0.9"/>
+  <text x="710" y="308" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">S3 Snapshot Bucket</text>
+  <text x="710" y="323" text-anchor="middle" font-size="9" fill="#B5D5F5">35-day noncurrent expiration · TLS 1.2</text>
+
+  <!-- Access Flow -->
+  <rect x="20" y="355" width="840" height="50" rx="6" fill="#FFF8E8" stroke="#FFB300" stroke-width="1"/>
+  <text x="440" y="375" text-anchor="middle" font-size="12" font-weight="bold" fill="#E67E00">🔗 Access Flow</text>
+  <text x="130" y="395" text-anchor="middle" font-size="10" fill="#545B64">ECS Task Exec Role → ECR (pull images)</text>
+  <text x="440" y="395" text-anchor="middle" font-size="10" fill="#545B64">ECS Task Role → S3 Canvas (R/W) + Exports (R/W)</text>
+  <text x="750" y="395" text-anchor="middle" font-size="10" fill="#545B64">ECS Task Role → EFS (WAL mount) + S3 Snapshots</text>
+</svg>

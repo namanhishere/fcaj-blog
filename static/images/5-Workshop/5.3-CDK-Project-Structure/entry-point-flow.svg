@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" font-family="Arial, sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#FF9900"/></marker>
+    <filter id="sh"><feDropShadow dx="1" dy="1" stdDeviation="1.5" flood-opacity="0.1"/></filter>
+  </defs>
+  <rect width="800" height="500" fill="#F4F7FB" rx="10"/>
+  <text x="400" y="30" text-anchor="middle" font-size="20" font-weight="bold" fill="#232F3E">CDK Entry Point &amp; Stack Composition Flow</text>
+  <line x1="200" y1="40" x2="600" y2="40" stroke="#FF9900" stroke-width="2"/>
+
+  <!-- Step 1: Environment -->
+  <rect x="25" y="58" width="260" height="85" rx="6" fill="#FFF" stroke="#8C4FFF" stroke-width="2" filter="url(#sh)"/>
+  <rect x="25" y="58" width="260" height="28" rx="6" fill="#8C4FFF"/>
+  <text x="155" y="76" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">① Environment Variables</text>
+  <g font-size="10" fill="#232F3E">
+    <circle cx="45" cy="100" r="2.5" fill="#8C4FFF"/><text x="55" y="104">DOMAIN_NAME</text>
+    <circle cx="45" cy="117" r="2.5" fill="#8C4FFF"/><text x="55" y="121">HOSTED_ZONE_ID</text>
+    <circle cx="45" cy="134" r="2.5" fill="#8C4FFF"/><text x="55" y="138">ECS_IMAGE_TAG</text>
+    <circle cx="190" cy="100" r="2.5" fill="#8C4FFF"/><text x="200" y="104">CDK_DEFAULT_ACCOUNT</text>
+    <circle cx="190" cy="117" r="2.5" fill="#8C4FFF"/><text x="200" y="121">CDK_DEFAULT_REGION</text>
+    <circle cx="190" cy="134" r="2.5" fill="#8C4FFF"/><text x="200" y="138">ENABLE_RAFTDB</text>
+  </g>
+  <line x1="285" y1="100" x2="325" y2="100" stroke="#FF9900" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- Step 2: Validation -->
+  <rect x="335" y="58" width="230" height="85" rx="6" fill="#FFF" stroke="#DD344C" stroke-width="2" filter="url(#sh)"/>
+  <rect x="335" y="58" width="230" height="28" rx="6" fill="#DD344C"/>
+  <text x="450" y="76" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">② Input Validation</text>
+  <g font-size="9" fill="#232F3E">
+    <text x="350" y="100">parseHostedZoneId() — Z[A-Z0-9]+</text>
+    <text x="350" y="115">parseEcsImageTag() — 128 char tag</text>
+    <text x="350" y="130">parseRaftDbImageDigest() — sha256:\<64h\></text>
+    <text x="555" y="100">parseNodeCount() — 1 or 3</text>
+    <text x="555" y="115">parseRestoreFromS3() — true/false</text>
+  </g>
+  <line x1="565" y1="100" x2="605" y2="100" stroke="#FF9900" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- Step 3: Stack Creation -->
+  <rect x="615" y="58" width="170" height="85" rx="6" fill="#FFF" stroke="#3F8624" stroke-width="2" filter="url(#sh)"/>
+  <rect x="615" y="58" width="170" height="28" rx="6" fill="#3F8624"/>
+  <text x="700" y="76" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">③ AwsplaceStack</text>
+  <g font-size="9" fill="#232F3E">
+    <circle cx="635" cy="96" r="2" fill="#3F8624"/><text x="642" y="100">Main stack creation</text>
+    <circle cx="635" cy="111" r="2" fill="#3F8624"/><text x="642" y="115">Wires 10+ modules</text>
+    <circle cx="635" cy="126" r="2" fill="#3F8624"/><text x="642" y="130">18 CfnOutputs</text>
+  </g>
+
+  <!-- Decision Diamond -->
+  <polygon points="400,178 530,220 400,262 270,220" fill="#FFF" stroke="#FFB300" stroke-width="2.5" filter="url(#sh)"/>
+  <text x="400" y="216" text-anchor="middle" font-size="11" font-weight="bold" fill="#E67E00">ENABLE_RAFTDB</text>
+  <text x="400" y="230" text-anchor="middle" font-size="10" fill="#E67E00">=== 'true' ?</text>
+
+  <line x1="700" y1="143" x2="530" y2="220" stroke="#999" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- YES -->
+  <text x="310" y="278" text-anchor="middle" font-size="11" font-weight="bold" fill="#3F8624">YES ↓</text>
+  <rect x="220" y="288" width="180" height="58" rx="6" fill="#E8F0FE" stroke="#146EB4" stroke-width="2" filter="url(#sh)"/>
+  <text x="310" y="310" text-anchor="middle" font-size="12" font-weight="bold" fill="#146EB4">RaftDbStagingStack</text>
+  <text x="310" y="327" text-anchor="middle" font-size="9" fill="#545B64">Disposable staging env</text>
+  <text x="310" y="341" text-anchor="middle" font-size="9" fill="#545B64">Depends on main stack</text>
+
+  <!-- NO -->
+  <text x="700" y="278" text-anchor="middle" font-size="11" font-weight="bold" fill="#DD344C">NO → Skip</text>
+
+  <!-- Step 5: Synth -->
+  <rect x="270" y="390" width="260" height="50" rx="8" fill="#232F3E" filter="url(#sh)"/>
+  <text x="400" y="415" text-anchor="middle" font-size="17" font-weight="bold" fill="#FF9900">app.synth()</text>
+  <text x="400" y="433" text-anchor="middle" font-size="10" fill="#D5DBDB">→ AWS CloudFormation Template</text>
+
+  <line x1="310" y1="346" x2="310" y2="370" stroke="#FF9900" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="310" y1="370" x2="400" y2="370" stroke="#FF9900" stroke-width="1.5"/>
+  <line x1="400" y1="370" x2="400" y2="388" stroke="#FF9900" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="270" y1="220" x2="230" y2="395" stroke="#999" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="225" y1="395" x2="270" y2="415" stroke="#FF9900" stroke-width="1" marker-end="url(#arr)"/>
+
+  <!-- Bottom chain -->
+  <rect x="25" y="460" width="750" height="30" rx="6" fill="#FFF8E8" stroke="#FFB300" stroke-width="1"/>
+  <text x="400" y="480" text-anchor="middle" font-size="11" fill="#545B64">Environment Variables → Input Validation → Stack Instantiation → Conditional Staging → Synthesis → CloudFormation Deployment</text>
+</svg>
