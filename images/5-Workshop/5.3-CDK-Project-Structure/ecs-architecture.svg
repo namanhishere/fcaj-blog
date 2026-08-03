@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 830 600" font-family="Arial, sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#545B64"/></marker>
+    <filter id="sh"><feDropShadow dx="1" dy="1" stdDeviation="1.2" flood-opacity="0.08"/></filter>
+  </defs>
+  <rect width="830" height="600" fill="#F4F7FB" rx="10"/>
+  <text x="415" y="28" text-anchor="middle" font-size="19" font-weight="bold" fill="#232F3E">ECS Fargate Task — Compute Layer</text>
+  <line x1="200" y1="38" x2="630" y2="38" stroke="#FF9900" stroke-width="2"/>
+
+  <!-- Internet -->
+  <rect x="280" y="48" width="270" height="26" rx="13" fill="#FF9900" opacity="0.9" filter="url(#sh)"/>
+  <text x="415" y="66" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">Internet — HTTPS 443 / HTTP 80</text>
+
+  <!-- ALB -->
+  <rect x="250" y="86" width="330" height="72" rx="8" fill="#1668B5" stroke="#0D4F8B" stroke-width="2" filter="url(#sh)"/>
+  <text x="415" y="109" text-anchor="middle" font-size="15" font-weight="bold" fill="#fff">Application Load Balancer (ALB)</text>
+  <text x="415" y="126" text-anchor="middle" font-size="10" fill="#B5D5F5">HTTPS 443 → Target Group → ECS :8980</text>
+  <text x="415" y="141" text-anchor="middle" font-size="10" fill="#B5D5F5">Health Check: GET /health · 30s · Healthy(2) · Idle Timeout: 3600s</text>
+  <text x="415" y="157" text-anchor="middle" font-size="10" fill="#B5D5F5">HTTP → HTTPS Redirect (301 Permanent)</text>
+
+  <!-- Route 53 -->
+  <rect x="648" y="92" width="165" height="26" rx="13" fill="#5A6C7D" filter="url(#sh)"/>
+  <text x="731" y="109" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">Route 53: ws.domain.com</text>
+  <line x1="580" y1="108" x2="646" y2="105" stroke="#5A6C7D" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+  <!-- ALB → ECS -->
+  <line x1="415" y1="158" x2="415" y2="182" stroke="#FF9900" stroke-width="2.5" marker-end="url(#arr)"/>
+  <text x="438" y="176" font-size="9" fill="#FF9900" font-weight="bold">ALB SG → ECS SG :8980</text>
+
+  <!-- ECS Fargate Task -->
+  <rect x="120" y="185" width="590" height="270" rx="10" fill="#EDF5ED" stroke="#3F8624" stroke-width="3" stroke-dasharray="10,5"/>
+  <text x="415" y="212" text-anchor="middle" font-size="15" font-weight="bold" fill="#3F8624">ECS Fargate Task — 1024 CPU (1 vCPU) / 2048 MiB Memory</text>
+
+  <!-- RaftDB Container -->
+  <rect x="150" y="228" width="240" height="115" rx="6" fill="#7E1950" filter="url(#sh)"/>
+  <text x="270" y="252" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">RaftDB Container (Sidecar)</text>
+  <text x="270" y="270" text-anchor="middle" font-size="10" fill="#F48FB1">Port: 9100 | User: 10001:10001 (non-root)</text>
+  <text x="270" y="287" text-anchor="middle" font-size="10" fill="#F48FB1">Image: SHA256 digest (IMMUTABLE)</text>
+  <text x="270" y="304" text-anchor="middle" font-size="10" fill="#F48FB1">Health Check: /usr/local/bin/raftdb-healthcheck</text>
+  <text x="270" y="321" text-anchor="middle" font-size="10" fill="#F48FB1">Snapshot: 300s interval → S3 backup</text>
+  <text x="270" y="338" text-anchor="middle" font-size="10" fill="#F48FB1">Stop timeout: 120s (graceful WAL flush)</text>
+
+  <!-- App Container -->
+  <rect x="440" y="228" width="240" height="115" rx="6" fill="#B34000" filter="url(#sh)"/>
+  <text x="560" y="252" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">App Container (Go Server)</text>
+  <text x="560" y="270" text-anchor="middle" font-size="10" fill="#FFD5B5">Port: 8980 | DATA_MODE=raftdb-only</text>
+  <text x="560" y="287" text-anchor="middle" font-size="10" fill="#FFD5B5">BACKEND=raftdb | STORAGE=raftdb</text>
+  <text x="560" y="304" text-anchor="middle" font-size="10" fill="#FFD5B5">RAFTDB_ADDR=127.0.0.1:9100</text>
+  <text x="560" y="321" text-anchor="middle" font-size="10" fill="#FFD5B5">AUTH_ENABLED=false</text>
+  <text x="560" y="338" text-anchor="middle" font-size="10" fill="#FFD5B5">SESSION_SECRET ← Secrets Manager</text>
+
+  <!-- Dependency arrow -->
+  <line x1="390" y1="285" x2="438" y2="285" stroke="#DD344C" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="414" y="278" text-anchor="middle" font-size="9" fill="#DD344C" font-weight="bold">depends_on</text>
+  <text x="414" y="298" text-anchor="middle" font-size="9" fill="#DD344C" font-weight="bold">HEALTHY</text>
+
+  <!-- EFS Mount -->
+  <rect x="150" y="360" width="230" height="42" rx="6" fill="#1668B5" filter="url(#sh)"/>
+  <text x="265" y="378" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">📁 EFS Mount: /data/raftdb</text>
+  <text x="265" y="394" text-anchor="middle" font-size="9" fill="#B5D5F5">Encrypted · UID 10001 · /raftdb/production/member-1</text>
+  <line x1="270" y1="343" x2="265" y2="358" stroke="#1668B5" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Service Config -->
+  <rect x="440" y="360" width="240" height="42" rx="6" fill="#FFF" stroke="#D5DBDB" stroke-width="1"/>
+  <text x="560" y="378" text-anchor="middle" font-size="11" font-weight="bold" fill="#232F3E">Fargate Service Settings</text>
+  <text x="560" y="394" text-anchor="middle" font-size="9" fill="#545B64">desiredCount=1 · minHealthyPercent=0 · maxHealthyPercent=100</text>
+
+  <rect x="120" y="468" width="590" height="55" rx="6" fill="#FFF8E8" stroke="#FFB300" stroke-width="1"/>
+  <text x="415" y="488" text-anchor="middle" font-size="12" font-weight="bold" fill="#E67E00">🛡 Security Chain</text>
+  <text x="415" y="506" text-anchor="middle" font-size="11" fill="#545B64">Internet (0.0.0.0/0 :80, :443) → ALB SG → ALB → ECS SG (:8980, from ALB SG only) → ECS Task</text>
+  <text x="415" y="520" text-anchor="middle" font-size="10" fill="#DD344C">Circuit breaker enabled with rollback · AZ Rebalancing: DISABLED</text>
+
+  <text x="415" y="555" text-anchor="middle" font-size="12" font-weight="bold" fill="#C62828">⚠ ECS Autoscaling PROHIBITED for RaftDB voters</text>
+  <text x="415" y="573" text-anchor="middle" font-size="10" fill="#687078">minHealthyPercent=0 ensures old task stops before replacement starts (single WAL owner, no overlap)</text>
+  <text x="415" y="588" text-anchor="middle" font-size="10" fill="#687078">Production RaftDB runs as sidecar · Single-instance deployment ONLY</text>
+</svg>

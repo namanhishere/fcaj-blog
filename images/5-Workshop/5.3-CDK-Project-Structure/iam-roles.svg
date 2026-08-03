@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 400" font-family="Arial, sans-serif">
+  <defs><filter id="sh"><feDropShadow dx="1" dy="1" stdDeviation="1.2" flood-opacity="0.08"/></filter></defs>
+  <rect width="920" height="400" fill="#F4F7FB" rx="10"/>
+  <text x="460" y="28" text-anchor="middle" font-size="19" font-weight="bold" fill="#232F3E">IAM Roles — Least-Privilege Security Model</text>
+  <line x1="230" y1="38" x2="690" y2="38" stroke="#FF9900" stroke-width="2"/>
+
+  <!-- Role 1 -->
+  <g filter="url(#sh)">
+    <rect x="15" y="52" width="290" height="210" rx="8" fill="#FFF" stroke="#8C4FFF" stroke-width="2"/>
+    <rect x="15" y="52" width="290" height="36" rx="8" fill="#8C4FFF"/>
+    <text x="160" y="75" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">ECS Task Execution Role</text>
+    <text x="160" y="100" text-anchor="middle" font-size="10" font-weight="bold" fill="#8C4FFF">Assumed by: ecs-tasks.amazonaws.com</text>
+    <line x1="25" y1="108" x2="295" y2="108" stroke="#E8D5FF" stroke-width="1"/>
+    <g font-size="10" fill="#232F3E">
+      <text x="30" y="126" font-weight="bold" fill="#545B64">ECR (Docker Pull)</text>
+      <text x="30" y="142">GetAuthToken, BatchCheckLayer</text>
+      <text x="30" y="158">GetDownloadUrlForLayer, BatchGetImage</text>
+      <text x="30" y="176" font-weight="bold" fill="#545B64">CloudWatch Logs</text>
+      <text x="30" y="192">CreateLogStream, PutLogEvents</text>
+      <text x="30" y="210" font-weight="bold" fill="#545B64">Secrets Manager</text>
+      <text x="30" y="226">GetSecretValue (awsplace/app-secrets)</text>
+      <text x="30" y="248" fill="#687078">Scope: All resources (*)</text>
+    </g>
+  </g>
+
+  <!-- Role 2 -->
+  <g filter="url(#sh)">
+    <rect x="320" y="52" width="290" height="210" rx="8" fill="#FFF" stroke="#3F8624" stroke-width="2"/>
+    <rect x="320" y="52" width="290" height="36" rx="8" fill="#3F8624"/>
+    <text x="465" y="75" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">ECS Task Role</text>
+    <text x="465" y="100" text-anchor="middle" font-size="10" font-weight="bold" fill="#3F8624">Assumed by: ecs-tasks.amazonaws.com</text>
+    <line x1="330" y1="108" x2="600" y2="108" stroke="#D5F5BB" stroke-width="1"/>
+    <g font-size="10" fill="#232F3E">
+      <text x="335" y="126" font-weight="bold" fill="#545B64">DynamoDB (Full CRUD)</text>
+      <text x="335" y="142">GetItem · PutItem · UpdateItem · DeleteItem</text>
+      <text x="335" y="158">Query · Scan · BatchGetItem · BatchWriteItem</text>
+      <text x="335" y="174" fill="#3F8624">Scope: 4 table ARNs + index/* ARNs</text>
+      <text x="335" y="192" font-weight="bold" fill="#545B64">S3 (Read/Write)</text>
+      <text x="335" y="208">GetObject · PutObject · DeleteObject · ListBucket</text>
+      <text x="335" y="224" fill="#3F8624">Scope: Canvas + Exports bucket ARNs</text>
+      <text x="335" y="242" font-weight="bold" fill="#545B64">EFS (Mount)</text>
+      <text x="335" y="258">ClientMount · ClientWrite (RaftDB AP ARN)</text>
+    </g>
+  </g>
+
+  <!-- Role 3 -->
+  <g filter="url(#sh)">
+    <rect x="625" y="52" width="280" height="210" rx="8" fill="#FFF" stroke="#E67E00" stroke-width="2"/>
+    <rect x="625" y="52" width="280" height="36" rx="8" fill="#E67E00"/>
+    <text x="765" y="75" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">Lambda Execution Role</text>
+    <text x="765" y="100" text-anchor="middle" font-size="10" font-weight="bold" fill="#E67E00">Assumed by: lambda.amazonaws.com</text>
+    <line x1="635" y1="108" x2="895" y2="108" stroke="#FFE0B0" stroke-width="1"/>
+    <g font-size="10" fill="#232F3E">
+      <text x="640" y="126" font-weight="bold" fill="#545B64">DynamoDB (Full CRUD)</text>
+      <text x="640" y="142">GetItem · PutItem · UpdateItem · DeleteItem</text>
+      <text x="640" y="158">Query · Scan · BatchGetItem · BatchWriteItem</text>
+      <text x="640" y="174" fill="#E67E00">Scope: 4 table ARNs + index ARNs</text>
+      <text x="640" y="192" font-weight="bold" fill="#545B64">S3 (Write-Only)</text>
+      <text x="640" y="208">PutObject only</text>
+      <text x="640" y="224" fill="#E67E00">Scope: Exports bucket ARN</text>
+      <text x="640" y="242" font-weight="bold" fill="#545B64">CloudWatch Logs</text>
+      <text x="640" y="258">AWSLambdaBasicExecutionRole</text>
+    </g>
+  </g>
+
+  <!-- No VPC Warning -->
+  <rect x="260" y="240" width="380" height="18" rx="4" fill="#FCE4EC"/><text x="450" y="254" text-anchor="middle" font-size="9" fill="#C62828" font-weight="bold">⚠ Lambda has NO ec2:DescribeNetworkInterfaces — NOT in VPC</text>
+
+  <!-- Helper -->
+  <rect x="15" y="275" width="890" height="42" rx="6" fill="#FFF" stroke="#D5DBDB" stroke-width="1"/>
+  <text x="460" y="296" text-anchor="middle" font-size="12" font-weight="bold" fill="#232F3E">Resource Scoping Helper</text>
+  <text x="460" y="312" text-anchor="middle" font-size="10" fill="#545B64">function allTableArns(db): generates [tableArn, tableArn/index/*] for all 4 tables → ensures DynamoDB access limited to application tables only</text>
+
+  <!-- Security principles -->
+  <g font-size="10">
+    <rect x="15" y="332" width="212" height="50" rx="6" fill="#E8F5E0" stroke="#C8E6C0" stroke-width="1"/>
+    <text x="121" y="354" text-anchor="middle" font-weight="bold" fill="#3F8624">🔒 Least Privilege</text>
+    <text x="121" y="372" text-anchor="middle" fill="#545B64">Only minimum needed actions</text>
+
+    <rect x="240" y="332" width="212" height="50" rx="6" fill="#E8F5E0" stroke="#C8E6C0" stroke-width="1"/>
+    <text x="346" y="354" text-anchor="middle" font-weight="bold" fill="#3F8624">🎯 Resource Scoping</text>
+    <text x="346" y="372" text-anchor="middle" fill="#545B64">Permissions to specific ARNs</text>
+
+    <rect x="465" y="332" width="212" height="50" rx="6" fill="#E8F5E0" stroke="#C8E6C0" stroke-width="1"/>
+    <text x="571" y="354" text-anchor="middle" font-weight="bold" fill="#3F8624">🛡 Separation of Duties</text>
+    <text x="571" y="372" text-anchor="middle" fill="#545B64">Exec vs Task vs Lambda roles</text>
+
+    <rect x="690" y="332" width="215" height="50" rx="6" fill="#E8F5E0" stroke="#C8E6C0" stroke-width="1"/>
+    <text x="798" y="354" text-anchor="middle" font-weight="bold" fill="#3F8624">🔐 No Long-Lived Creds</text>
+    <text x="798" y="372" text-anchor="middle" fill="#545B64">OIDC in CI · IAM roles at runtime</text>
+  </g>
+</svg>

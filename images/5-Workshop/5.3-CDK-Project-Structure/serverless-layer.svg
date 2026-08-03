@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 950 450" font-family="Arial, sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#545B64"/></marker>
+    <filter id="sh"><feDropShadow dx="1" dy="1" stdDeviation="1.2" flood-opacity="0.08"/></filter>
+  </defs>
+  <rect width="950" height="450" fill="#F4F7FB" rx="10"/>
+  <text x="475" y="28" text-anchor="middle" font-size="19" font-weight="bold" fill="#232F3E">Serverless Layer — Split-Domain Architecture</text>
+  <line x1="200" y1="38" x2="750" y2="38" stroke="#FF9900" stroke-width="2"/>
+
+  <!-- Browser -->
+  <rect x="35" y="60" width="165" height="68" rx="8" fill="#232F3E" filter="url(#sh)"/>
+  <text x="118" y="85" text-anchor="middle" font-size="13" font-weight="bold" fill="#FF9900">🌐 Browser</text>
+  <text x="118" y="102" text-anchor="middle" font-size="9" fill="#D5DBDB">User's Web Browser</text>
+  <text x="118" y="118" text-anchor="middle" font-size="9" fill="#D5DBDB">Cookie: rplace_session</text>
+
+  <!-- Route arrows -->
+  <line x1="200" y1="78" x2="275" y2="55" stroke="#2C98A0" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="235" y="50" text-anchor="middle" font-size="8" fill="#2C98A0">HTTPS</text>
+  <line x1="200" y1="98" x2="275" y2="98" stroke="#E65100" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="235" y="94" text-anchor="middle" font-size="8" fill="#E65100">HTTPS</text>
+  <line x1="200" y1="118" x2="275" y2="155" stroke="#1668B5" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="235" y="145" text-anchor="middle" font-size="8" fill="#1668B5">WSS</text>
+
+  <!-- Amplify -->
+  <rect x="290" y="40" width="185" height="38" rx="6" fill="#2C98A0" filter="url(#sh)"/>
+  <text x="383" y="56" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">🌐 Amplify Hosting</text>
+  <text x="383" y="71" text-anchor="middle" font-size="9" fill="#C8F5F8">domain.com (root)</text>
+
+  <!-- API Gateway -->
+  <rect x="290" y="86" width="185" height="38" rx="6" fill="#7D2615" filter="url(#sh)"/>
+  <text x="383" y="102" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">⚡ API Gateway v2</text>
+  <text x="383" y="117" text-anchor="middle" font-size="9" fill="#F5D8D0">api.domain.com</text>
+
+  <!-- ALB -->
+  <rect x="290" y="142" width="185" height="38" rx="6" fill="#1668B5" filter="url(#sh)"/>
+  <text x="383" y="158" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">🔄 ALB (HTTPS 443)</text>
+  <text x="383" y="173" text-anchor="middle" font-size="9" fill="#B5D5F5">ws.domain.com</text>
+
+  <!-- Lambda -->
+  <rect x="530" y="70" width="210" height="108" rx="8" fill="#FFF" stroke="#E65100" stroke-width="2.5" filter="url(#sh)"/>
+  <rect x="530" y="70" width="210" height="32" rx="8" fill="#E65100"/>
+  <text x="635" y="92" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">λ Lambda Function</text>
+  <text x="635" y="116" text-anchor="middle" font-size="10" fill="#232F3E">Node.js 24 · 512 MB · 30s</text>
+  <text x="635" y="133" text-anchor="middle" font-size="10" fill="#232F3E">🔑 Auth: Discord OAuth2 + JWT</text>
+  <text x="635" y="150" text-anchor="middle" font-size="10" fill="#232F3E">🔀 Admin Proxy → ECS ALB</text>
+  <text x="635" y="170" text-anchor="middle" font-size="9" fill="#DD344C" font-weight="bold">NOT in VPC (no ENI)</text>
+
+  <line x1="475" y1="105" x2="528" y2="120" stroke="#E65100" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Secrets Manager -->
+  <rect x="785" y="72" width="145" height="40" rx="6" fill="#5A6C7D" filter="url(#sh)"/>
+  <text x="858" y="90" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">🔐 Secrets Manager</text>
+  <text x="858" y="106" text-anchor="middle" font-size="8" fill="#D5E0E8">awsplace/app-secrets</text>
+
+  <line x1="740" y1="120" x2="783" y2="100" stroke="#5A6C7D" stroke-width="1.2" stroke-dasharray="4,2"/>
+
+  <!-- Discord -->
+  <rect x="785" y="128" width="145" height="35" rx="6" fill="#5865F2" filter="url(#sh)"/>
+  <text x="858" y="146" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">🎮 Discord API</text>
+  <text x="858" y="158" text-anchor="middle" font-size="8" fill="#D5D8FF">oauth2 + users/@me</text>
+
+  <line x1="740" y1="145" x2="783" y2="145" stroke="#5865F2" stroke-width="1.5" stroke-dasharray="4,2"/>
+
+  <!-- ECS -->
+  <rect x="530" y="196" width="210" height="65" rx="8" fill="#EDF5ED" stroke="#3F8624" stroke-width="2" filter="url(#sh)"/>
+  <text x="635" y="218" text-anchor="middle" font-size="13" font-weight="bold" fill="#3F8624">🐳 ECS Fargate</text>
+  <text x="635" y="235" text-anchor="middle" font-size="10" fill="#545B64">Go App :8980 (WebSocket)</text>
+  <text x="635" y="250" text-anchor="middle" font-size="10" fill="#545B64">RaftDB :9100 (sidecar)</text>
+  <text x="635" y="264" text-anchor="middle" font-size="9" fill="#3F8624">Verifies JWT independently</text>
+
+  <line x1="475" y1="165" x2="528" y2="225" stroke="#E65100" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="490" y="208" text-anchor="middle" font-size="9" fill="#545B64">Admin proxy</text>
+
+  <!-- Cookie Domain -->
+  <rect x="35" y="150" width="165" height="68" rx="6" fill="#FFF8E8" stroke="#FFB300" stroke-width="1"/>
+  <text x="118" y="170" text-anchor="middle" font-size="11" font-weight="bold" fill="#E67E00">🍪 Cookie Domain</text>
+  <text x="118" y="186" text-anchor="middle" font-size="9" fill="#545B64">Set by: api.domain.com</text>
+  <text x="118" y="200" text-anchor="middle" font-size="9" fill="#545B64">Read by: domain.com</text>
+  <text x="118" y="214" text-anchor="middle" font-size="9" fill="#545B64">Shared parent →</text>
+
+  <!-- Bottom flow -->
+  <rect x="20" y="285" width="910" height="150" rx="8" fill="#FFF" stroke="#D5DBDB" stroke-width="1"/>
+  <text x="475" y="310" text-anchor="middle" font-size="14" font-weight="bold" fill="#232F3E">Complete Request Flow</text>
+
+  <g font-size="10">
+    <rect x="40" y="325" width="440" height="38" rx="4" fill="#E8F5F8"/>
+    <text x="260" y="342" text-anchor="middle" font-weight="bold" fill="#2C98A0">1️⃣ Page Load</text>
+    <text x="260" y="358" text-anchor="middle" fill="#545B64">Browser → domain.com → Amplify → Serves index.html (SPA) + admin.html</text>
+
+    <rect x="40" y="370" width="440" height="38" rx="4" fill="#FFF3E8"/>
+    <text x="260" y="387" text-anchor="middle" font-weight="bold" fill="#E65100">2️⃣ Authentication (Discord OAuth2)</text>
+    <text x="260" y="403" text-anchor="middle" fill="#545B64">Browser → api.domain.com/auth/login → API Gateway → Lambda → Discord → JWT → rplace_session cookie</text>
+
+    <rect x="500" y="325" width="410" height="38" rx="4" fill="#EDF5F8"/>
+    <text x="705" y="342" text-anchor="middle" font-weight="bold" fill="#1668B5">3️⃣ WebSocket Connection</text>
+    <text x="705" y="358" text-anchor="middle" fill="#545B64">Browser → wss://ws.domain.com/ws → ALB → ECS Go App :8980</text>
+
+    <rect x="500" y="370" width="410" height="38" rx="4" fill="#EDF8ED"/>
+    <text x="705" y="387" text-anchor="middle" font-weight="bold" fill="#3F8624">4️⃣ Admin Operations</text>
+    <text x="705" y="403" text-anchor="middle" fill="#545B64">Browser → api.domain.com/api/admin/* → Lambda → Proxy → ECS ALB → Go Admin API</text>
+  </g>
+</svg>

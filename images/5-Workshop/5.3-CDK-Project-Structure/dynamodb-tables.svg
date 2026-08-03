@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" font-family="Arial, sans-serif">
+  <defs><filter id="sh"><feDropShadow dx="1" dy="1" stdDeviation="1.2" flood-opacity="0.08"/></filter></defs>
+  <rect width="900" height="480" fill="#F4F7FB" rx="10"/>
+  <text x="450" y="28" text-anchor="middle" font-size="19" font-weight="bold" fill="#232F3E">DynamoDB Table Design — 4 TableV2 (On-Demand Billing)</text>
+  <line x1="200" y1="38" x2="700" y2="38" stroke="#FF9900" stroke-width="2"/>
+
+  <!-- 4 Table Cards -->
+  <g filter="url(#sh)">
+    <rect x="15" y="55" width="210" height="195" rx="8" fill="#FFF" stroke="#8C4FFF" stroke-width="2"/>
+    <rect x="15" y="55" width="210" height="34" rx="8" fill="#8C4FFF"/>
+    <text x="120" y="77" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">🗄 Config Table</text>
+    <g font-size="10" fill="#232F3E">
+      <text x="30" y="108" font-weight="bold" fill="#8C4FFF">PK: CONFIG (STRING)</text>
+      <text x="30" y="124" font-weight="bold" fill="#8C4FFF">SK: SINGLETON (STRING)</text>
+      <line x1="30" y1="131" x2="215" y2="131" stroke="#E8D5FF" stroke-width="1"/>
+      <text x="30" y="148" font-weight="bold" fill="#545B64">Stored Fields:</text>
+      <text x="30" y="166">width · height</text>
+      <text x="30" y="182">cooldownSeconds</text>
+      <text x="30" y="198">offset_x · offset_y</text>
+      <text x="30" y="218" fill="#687078">No GSI · 1 item total</text>
+      <text x="30" y="240" fill="#687078">Singleton pattern</text>
+    </g>
+  </g>
+
+  <g filter="url(#sh)">
+    <rect x="240" y="55" width="210" height="195" rx="8" fill="#FFF" stroke="#3F8624" stroke-width="2"/>
+    <rect x="240" y="55" width="210" height="34" rx="8" fill="#3F8624"/>
+    <text x="345" y="77" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">🚫 Bans Table</text>
+    <g font-size="10" fill="#232F3E">
+      <text x="255" y="108" font-weight="bold" fill="#3F8624">PK: BAN#type#id (STRING)</text>
+      <text x="255" y="124" font-weight="bold" fill="#3F8624">SK: BAN (STRING)</text>
+      <line x1="255" y1="131" x2="440" y2="131" stroke="#D5F5BB" stroke-width="1"/>
+      <text x="255" y="148" font-weight="bold" fill="#545B64">Examples:</text>
+      <text x="255" y="166">BAN#user#123456789</text>
+      <text x="255" y="182">BAN#ip#192.168.1.1</text>
+      <text x="255" y="218" fill="#687078">No GSI · Variable items</text>
+      <text x="255" y="238" fill="#687078">GetItem / Scan prefix</text>
+    </g>
+  </g>
+
+  <g filter="url(#sh)">
+    <rect x="465" y="55" width="210" height="195" rx="8" fill="#FFF" stroke="#E67E00" stroke-width="2"/>
+    <rect x="465" y="55" width="210" height="34" rx="8" fill="#E67E00"/>
+    <text x="570" y="77" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">📅 Milestones Table</text>
+    <g font-size="10" fill="#232F3E">
+      <text x="480" y="108" font-weight="bold" fill="#E67E00">PK: MILESTONE (STRING)</text>
+      <text x="480" y="124" font-weight="bold" fill="#E67E00">SK: &lt;ulid&gt; (STRING)</text>
+      <line x1="480" y1="131" x2="665" y2="131" stroke="#FFE0B0" stroke-width="1"/>
+      <text x="480" y="148" font-weight="bold" fill="#E67E00">GSI: TriggerAtIndex</text>
+      <text x="480" y="166">Sort: triggerAt (NUMBER)</text>
+      <text x="480" y="182">Projection: ALL</text>
+      <text x="480" y="200">Fields: direction, amount,</text>
+      <text x="480" y="216">label, fired, firedAt</text>
+      <text x="480" y="238" fill="#687078">Query: sorted ascending</text>
+    </g>
+  </g>
+
+  <g filter="url(#sh)">
+    <rect x="690" y="55" width="200" height="195" rx="8" fill="#FFF" stroke="#DD344C" stroke-width="2"/>
+    <rect x="690" y="55" width="200" height="34" rx="8" fill="#DD344C"/>
+    <text x="790" y="77" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">📝 History Table</text>
+    <g font-size="10" fill="#232F3E">
+      <text x="705" y="108" font-weight="bold" fill="#DD344C">PK: HISTORY (STRING)</text>
+      <text x="705" y="124" font-weight="bold" fill="#DD344C">SK: ts#&lt;ms&gt;#&lt;uuid&gt;</text>
+      <line x1="705" y1="131" x2="880" y2="131" stroke="#FFD5DA" stroke-width="1"/>
+      <text x="705" y="148" font-weight="bold" fill="#DD344C">GSI: XOriginalIndex</text>
+      <text x="705" y="166">Sort: x_original (NUMBER)</text>
+      <text x="705" y="182">Projection: INCLUDE</text>
+      <text x="705" y="198">NonKey: y_original,</text>
+      <text x="705" y="214">offset_x, offset_y,</text>
+      <text x="705" y="230">colorIndex</text>
+      <text x="705" y="248" fill="#687078">Rectangle queries</text>
+    </g>
+  </g>
+
+  <!-- Access Patterns -->
+  <rect x="15" y="268" width="875" height="60" rx="6" fill="#FFF" stroke="#D5DBDB" stroke-width="1"/>
+  <text x="450" y="290" text-anchor="middle" font-size="13" font-weight="bold" fill="#232F3E">Access Patterns</text>
+  <g font-size="10">
+    <rect x="30" y="300" width="195" height="20" rx="3" fill="#8C4FFF" opacity="0.12"/><text x="128" y="314" text-anchor="middle" fill="#8C4FFF">GetItem PK=CONFIG, SK=SINGLETON</text>
+    <rect x="235" y="300" width="195" height="20" rx="3" fill="#3F8624" opacity="0.12"/><text x="333" y="314" text-anchor="middle" fill="#3F8624">GetItem / Scan BAN# prefix</text>
+    <rect x="440" y="300" width="195" height="20" rx="3" fill="#E67E00" opacity="0.12"/><text x="538" y="314" text-anchor="middle" fill="#E67E00">Query GSI TriggerAtIndex ASC</text>
+    <rect x="645" y="300" width="230" height="20" rx="3" fill="#DD344C" opacity="0.12"/><text x="760" y="314" text-anchor="middle" fill="#DD344C">Query GSI x_original BETWEEN x1,x2</text>
+  </g>
+
+  <!-- Important Notes -->
+  <rect x="15" y="342" width="875" height="125" rx="6" fill="#FFF5F5" stroke="#EF9A9A" stroke-width="1"/>
+  <text x="450" y="365" text-anchor="middle" font-size="13" font-weight="bold" fill="#C62828">⚠ Important Notes — What is NOT in DynamoDB</text>
+  <g font-size="11" fill="#545B64">
+    <circle cx="40" cy="388" r="3" fill="#DD344C"/><text x="55" y="392">No TTL configured on any table — cooldowns are managed in-memory (Go map) by the application server</text>
+    <circle cx="40" cy="410" r="3" fill="#DD344C"/><text x="55" y="414">No Canvas table — canvas binary data stored in S3 (4bpp nibble-packed, 2 pixels per byte, up to 32 MiB at 8000×8000)</text>
+    <circle cx="40" cy="432" r="3" fill="#DD344C"/><text x="55" y="436">DynamoDB item limit is 400 KB — insufficient for canvas → S3 is the authoritative canvas store</text>
+    <circle cx="40" cy="454" r="3" fill="#DD344C"/><text x="55" y="458">All 4 tables use on-demand billing (Billing.onDemand()) — no provisioned capacity, pay per request</text>
+  </g>
+</svg>
